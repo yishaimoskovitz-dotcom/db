@@ -26,9 +26,13 @@
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       
-      /* input focus style */
+      /* עיצוב שדות קלט מודרני */
+      .input-group { @apply relative mb-4; }
       .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400; }
-      .label-text { @apply block text-sm font-medium text-slate-700 mb-1.5; }
+      .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
+      
+      /* עיצוב לדרופ-דאון של הדפדפן */
+      datalist { display: none; }
     </style>
   </head>
   <body class="text-slate-800">
@@ -42,9 +46,10 @@
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       
-      // *** חשוב: כאן מדביקים את הכתובת שקיבלת מ-APPS SCRIPT ***
+      // *** שים את הכתובת של ה-Google Apps Script שלך כאן ***
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWvcYe6yyVG3U6rOPsHA3qyQecCAuCoOrZU8ipr6lyZRzQtHyxaMF5_3yY9p08AJeJ/exec"; 
 
+      // --- פונקציות עזר ---
       const parseCSV = (str) => {
         const arr = [];
         let quote = false;
@@ -149,8 +154,8 @@
         );
       };
 
-      // --- מודל הוספה (מעודכן עם דוגמאות חיות) ---
-      const AddDataModal = ({ onClose, onRefresh, exampleItem }) => {
+      // --- מודל הוספה חכם ודינמי ---
+      const AddDataModal = ({ onClose, onRefresh, existingData }) => {
         const [step, setStep] = useState('login'); 
         const [email, setEmail] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,11 +163,11 @@
           domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: ''
         });
 
-        // יצירת טקסט לדוגמה בצורה בטוחה
-        const getPlaceholder = (field, fallback) => {
-          if (exampleItem && exampleItem[field]) return `למשל: ${exampleItem[field]}`;
-          return fallback;
-        };
+        // חישוב הרשימות הקיימות מתוך הדאטה בזמן אמת
+        // המערכת לוקחת את כל הערכים הקיימים, מסירה כפילויות ויוצרת רשימה
+        const uniqueDomains = useMemo(() => [...new Set(existingData.map(i => i.domain).filter(Boolean))], [existingData]);
+        const uniqueOwners = useMemo(() => [...new Set(existingData.map(i => i.owner).filter(Boolean))], [existingData]);
+        const uniqueSources = useMemo(() => [...new Set(existingData.map(i => i.sourceName).filter(Boolean))], [existingData]);
 
         const handleLogin = (e) => {
           e.preventDefault();
@@ -191,7 +196,7 @@
               body: JSON.stringify({ ...formData, updatedBy: email })
             });
             setStep('success');
-            setTimeout(() => { onRefresh(); }, 2000);
+            setTimeout(() => { onRefresh(); }, 2000); // לאחר רענון, הערך החדש יהיה חלק מהרשימה לכולם
           } catch (error) {
             console.error(error);
             alert("אירעה שגיאה בשמירה.");
@@ -206,7 +211,7 @@
               
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-slate-800">
-                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת שורה חדשה'}
+                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת נתונים'}
                 </h2>
                 <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"><Icon name="X" size={20} /></button>
               </div>
@@ -218,89 +223,95 @@
                       <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600">
                         <Icon name="Lock" size={32} />
                       </div>
-                      <p className="text-slate-600">כדי לערוך נתונים, אנא הזדהה באמצעות כתובת המייל שלך.</p>
+                      <p className="text-slate-600">הגישה לעריכה מוגבלת למורשים בלבד.</p>
                     </div>
                     <div>
-                      <label className="label-text">אימייל</label>
+                      <label className="input-label">אימייל להזדהות</label>
                       <input type="email" required className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
                     </div>
-                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all">המשך</button>
+                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200">המשך לטופס</button>
                   </form>
                 )}
 
                 {step === 'form' && (
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                    {/* Domain */}
-                    <div>
-                      <label className="label-text">נושא ראשי (Domain)</label>
+                    
+                    {/* Domain - בחירה מרשימה קיימת או הקלדה חדשה */}
+                    <div className="input-group">
+                      <label className="input-label">נושא (Domain)</label>
                       <input 
                         list="domains-list" 
                         required 
                         className="input-field" 
-                        placeholder={getPlaceholder('domain', 'למשל: שיווק')} 
+                        placeholder="בחר מהרשימה או הקלד חדש..." 
                         value={formData.domain} 
                         onChange={e => setFormData({...formData, domain: e.target.value})} 
                       />
                       <datalist id="domains-list">
-                        <option value="שיווק" />
-                        <option value="כספים" />
-                        <option value="מוצר" />
-                        <option value="טכנולוגיה" />
-                        <option value="משאבי אנוש" />
+                        {uniqueDomains.map(d => <option key={d} value={d} />)}
                       </datalist>
+                      <p className="text-[10px] text-slate-400 mt-1">עדכון כאן יוסיף את האופציה לרשימה הכללית.</p>
                     </div>
 
-                    {/* SubTopic */}
-                    <div>
-                      <label className="label-text">תת-נושא / שם הדוח (SubTopic)</label>
+                    {/* SubTopic - שדה טקסט כי זה משתנה (כותרת התגית הקטנה) */}
+                    <div className="input-group">
+                      <label className="input-label">תת-נושא / שם הדוח (SubTopic)</label>
                       <input 
                         type="text" 
                         required 
                         className="input-field" 
-                        placeholder={getPlaceholder('subTopic', 'למשל: דוח מכירות חודשי')} 
+                        placeholder="למשל: דוח ביצועים חודשי" 
                         value={formData.subTopic} 
                         onChange={e => setFormData({...formData, subTopic: e.target.value})} 
                       />
                     </div>
 
-                    {/* Owner & Source */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="label-text">אחראי (Owner)</label>
+                      {/* Owner - בחירה מרשימה קיימת או חדש */}
+                      <div className="input-group">
+                        <label className="input-label">אחראי (Owner)</label>
                         <input 
-                          type="text" 
+                          list="owners-list"
                           className="input-field" 
-                          placeholder={getPlaceholder('owner', 'למשל: ישראל ישראלי')} 
+                          placeholder="שם האחראי" 
                           value={formData.owner} 
                           onChange={e => setFormData({...formData, owner: e.target.value})} 
                         />
+                         <datalist id="owners-list">
+                          {uniqueOwners.map(o => <option key={o} value={o} />)}
+                        </datalist>
                       </div>
-                      <div>
-                        <label className="label-text">מקור (Source Name)</label>
+
+                      {/* Source - בחירה מרשימה קיימת או חדש */}
+                      <div className="input-group">
+                        <label className="input-label">מקור (Source)</label>
                         <input 
-                          type="text" 
+                          list="sources-list"
                           className="input-field" 
-                          placeholder={getPlaceholder('sourceName', 'למשל: Salesforce')} 
+                          placeholder="מערכת מקור" 
                           value={formData.sourceName} 
                           onChange={e => setFormData({...formData, sourceName: e.target.value})} 
                         />
+                        <datalist id="sources-list">
+                          {uniqueSources.map(s => <option key={s} value={s} />)}
+                        </datalist>
                       </div>
                     </div>
 
                     {/* Extra Info */}
-                    <div>
-                      <label className="label-text">מידע נוסף (Extra Info)</label>
+                    <div className="input-group">
+                      <label className="input-label">מידע נוסף (Extra Info)</label>
                       <textarea 
                         className="input-field min-h-[80px]" 
-                        placeholder={getPlaceholder('extraInfo', 'תיאור קצר, הערות או קישורים נוספים...')} 
+                        placeholder="הערות נוספות שיופיעו בתגית..." 
                         value={formData.extraInfo} 
                         onChange={e => setFormData({...formData, extraInfo: e.target.value})}
                       ></textarea>
                     </div>
 
-                    <button type="submit" disabled={isSubmitting} className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>
+                    <button type="submit" disabled={isSubmitting} className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 ${isSubmitting ? 'opacity-70' : ''}`}>
                       {isSubmitting && <Icon name="Loader2" className="spin" />}
-                      {isSubmitting ? 'שולח...' : 'שמור נתונים'}
+                      {isSubmitting ? 'שומר ומעדכן...' : 'שמור נתונים'}
                     </button>
                   </form>
                 )}
@@ -311,7 +322,7 @@
                       <Icon name="Check" size={40} />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">הנתונים נשמרו!</h3>
-                    <p className="text-slate-500">הטבלה מתעדכנת...</p>
+                    <p className="text-slate-500">הערכים החדשים נוספו למאגר ויעודכנו ברשימות מיד.</p>
                     <button onClick={onClose} className="mt-6 text-indigo-600 font-bold hover:underline">סגור חלונית</button>
                   </div>
                 )}
@@ -331,9 +342,6 @@
         const [error, setError] = useState(null);
         const [selectedItem, setSelectedItem] = useState(null);
         const [showAddModal, setShowAddModal] = useState(false);
-
-        // שליפת דוגמה מהשורה הראשונה (אם קיימת)
-        const exampleData = useMemo(() => data.length > 0 ? data[0] : {}, [data]);
 
         const fetchData = async () => {
           setIsLoading(true); setError(null);
@@ -405,7 +413,9 @@
                 </main>
             </div>
             {selectedItem && <ViewModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
-            {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} exampleItem={exampleData} />}
+            
+            {/* העברת כל הדאטה למודל כדי שידע לייצר את הרשימות */}
+            {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} existingData={data} />}
           </div>
         );
       }
@@ -414,3 +424,4 @@
     </script>
   </body>
 </html>
+
