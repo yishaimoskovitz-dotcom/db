@@ -25,8 +25,9 @@
       @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      
       /* input focus style */
-      .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all; }
+      .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400; }
       .label-text { @apply block text-sm font-medium text-slate-700 mb-1.5; }
     </style>
   </head>
@@ -121,7 +122,7 @@
         );
       };
 
-      // --- מודל צפייה בנתונים ---
+      // --- מודל צפייה ---
       const ViewModal = ({ item, onClose }) => {
         if (!item) return null;
         const specialFields = ['domain', 'subTopic', 'owner', 'link', 'id', 'sourceName', 'extraInfo']; 
@@ -148,14 +149,20 @@
         );
       };
 
-      // --- מודל הוספת נתונים ---
-      const AddDataModal = ({ onClose, onRefresh }) => {
-        const [step, setStep] = useState('login'); // login | form | success
+      // --- מודל הוספה (מעודכן עם דוגמאות חיות) ---
+      const AddDataModal = ({ onClose, onRefresh, exampleItem }) => {
+        const [step, setStep] = useState('login'); 
         const [email, setEmail] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [formData, setFormData] = useState({
           domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: ''
         });
+
+        // יצירת טקסט לדוגמה בצורה בטוחה
+        const getPlaceholder = (field, fallback) => {
+          if (exampleItem && exampleItem[field]) return `למשל: ${exampleItem[field]}`;
+          return fallback;
+        };
 
         const handleLogin = (e) => {
           e.preventDefault();
@@ -177,23 +184,17 @@
           }
 
           try {
-            // שליחה לסקריפט בגוגל שיטס
             await fetch(APPS_SCRIPT_URL, {
               method: 'POST',
-              mode: 'no-cors', // חשוב כדי למנוע שגיאות דפדפן, גם אם לא נקבל תשובה מלאה
+              mode: 'no-cors',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...formData, updatedBy: email })
             });
-
-            // הנחה שהצליח כי no-cors לא מחזיר סטטוס
             setStep('success');
-            setTimeout(() => {
-               onRefresh(); // רענון הנתונים בטבלה הראשית
-            }, 2000);
-
+            setTimeout(() => { onRefresh(); }, 2000);
           } catch (error) {
             console.error(error);
-            alert("אירעה שגיאה בשמירה. נסה שוב.");
+            alert("אירעה שגיאה בשמירה.");
           } finally {
             setIsSubmitting(false);
           }
@@ -203,10 +204,9 @@
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col" onClick={e => e.stopPropagation()}>
               
-              {/* כותרת המודל */}
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-slate-800">
-                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת נתונים חדשים'}
+                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת שורה חדשה'}
                 </h2>
                 <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"><Icon name="X" size={20} /></button>
               </div>
@@ -230,36 +230,74 @@
 
                 {step === 'form' && (
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                    {/* Domain */}
                     <div>
                       <label className="label-text">נושא ראשי (Domain)</label>
-                      <select required className="input-field" value={formData.domain} onChange={e => setFormData({...formData, domain: e.target.value})}>
-                        <option value="">בחר נושא...</option>
-                        <option value="שיווק">שיווק</option>
-                        <option value="כספים">כספים</option>
-                        <option value="מוצר">מוצר</option>
-                        <option value="טכנולוגיה">טכנולוגיה</option>
-                        <option value="משאבי אנוש">משאבי אנוש</option>
-                        <option value="אחר">אחר</option>
-                      </select>
+                      <input 
+                        list="domains-list" 
+                        required 
+                        className="input-field" 
+                        placeholder={getPlaceholder('domain', 'למשל: שיווק')} 
+                        value={formData.domain} 
+                        onChange={e => setFormData({...formData, domain: e.target.value})} 
+                      />
+                      <datalist id="domains-list">
+                        <option value="שיווק" />
+                        <option value="כספים" />
+                        <option value="מוצר" />
+                        <option value="טכנולוגיה" />
+                        <option value="משאבי אנוש" />
+                      </datalist>
                     </div>
+
+                    {/* SubTopic */}
                     <div>
-                      <label className="label-text">תת-נושא / שם הדוח</label>
-                      <input type="text" required className="input-field" placeholder="למשל: דוח מכירות רבעוני" value={formData.subTopic} onChange={e => setFormData({...formData, subTopic: e.target.value})} />
+                      <label className="label-text">תת-נושא / שם הדוח (SubTopic)</label>
+                      <input 
+                        type="text" 
+                        required 
+                        className="input-field" 
+                        placeholder={getPlaceholder('subTopic', 'למשל: דוח מכירות חודשי')} 
+                        value={formData.subTopic} 
+                        onChange={e => setFormData({...formData, subTopic: e.target.value})} 
+                      />
                     </div>
+
+                    {/* Owner & Source */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="label-text">שם האחראי</label>
-                        <input type="text" className="input-field" placeholder="ישראל ישראלי" value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})} />
+                        <label className="label-text">אחראי (Owner)</label>
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          placeholder={getPlaceholder('owner', 'למשל: ישראל ישראלי')} 
+                          value={formData.owner} 
+                          onChange={e => setFormData({...formData, owner: e.target.value})} 
+                        />
                       </div>
                       <div>
-                        <label className="label-text">מקור הנתונים</label>
-                        <input type="text" className="input-field" placeholder="BigQuery / CRM" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} />
+                        <label className="label-text">מקור (Source Name)</label>
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          placeholder={getPlaceholder('sourceName', 'למשל: Salesforce')} 
+                          value={formData.sourceName} 
+                          onChange={e => setFormData({...formData, sourceName: e.target.value})} 
+                        />
                       </div>
                     </div>
+
+                    {/* Extra Info */}
                     <div>
-                      <label className="label-text">מידע נוסף (אופציונלי)</label>
-                      <textarea className="input-field min-h-[80px]" placeholder="תיאור קצר על הדוח..." value={formData.extraInfo} onChange={e => setFormData({...formData, extraInfo: e.target.value})}></textarea>
+                      <label className="label-text">מידע נוסף (Extra Info)</label>
+                      <textarea 
+                        className="input-field min-h-[80px]" 
+                        placeholder={getPlaceholder('extraInfo', 'תיאור קצר, הערות או קישורים נוספים...')} 
+                        value={formData.extraInfo} 
+                        onChange={e => setFormData({...formData, extraInfo: e.target.value})}
+                      ></textarea>
                     </div>
+
                     <button type="submit" disabled={isSubmitting} className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>
                       {isSubmitting && <Icon name="Loader2" className="spin" />}
                       {isSubmitting ? 'שולח...' : 'שמור נתונים'}
@@ -272,8 +310,8 @@
                     <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 animate-bounce">
                       <Icon name="Check" size={40} />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-2">הנתונים נשמרו בהצלחה!</h3>
-                    <p className="text-slate-500">הטבלה תתעדכן ברגעים אלו.</p>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">הנתונים נשמרו!</h3>
+                    <p className="text-slate-500">הטבלה מתעדכנת...</p>
                     <button onClick={onClose} className="mt-6 text-indigo-600 font-bold hover:underline">סגור חלונית</button>
                   </div>
                 )}
@@ -282,7 +320,6 @@
           </div>
         );
       };
-
 
       // --- אפליקציה ראשית ---
       function App() {
@@ -294,6 +331,9 @@
         const [error, setError] = useState(null);
         const [selectedItem, setSelectedItem] = useState(null);
         const [showAddModal, setShowAddModal] = useState(false);
+
+        // שליפת דוגמה מהשורה הראשונה (אם קיימת)
+        const exampleData = useMemo(() => data.length > 0 ? data[0] : {}, [data]);
 
         const fetchData = async () => {
           setIsLoading(true); setError(null);
@@ -337,15 +377,10 @@
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Search" size={18} /></div>
                 </div>
                 <div className="flex items-center gap-2">
-                   {/* כפתור הוספת נתונים חדש */}
-                   <button 
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg"
-                  >
+                   <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
                     <Icon name="PlusCircle" size={16} />
                     <span className="hidden lg:inline">הוסף נתונים</span>
                   </button>
-
                   <button onClick={fetchData} disabled={isLoading} className={`flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-sm font-semibold transition-all ${isLoading ? 'opacity-70' : ''}`}>
                     <Icon name="RefreshCw" size={18} className={isLoading ? "spin" : ""} />
                     <span className="hidden lg:inline">{isLoading ? "מעדכן..." : "רענן נתונים"}</span>
@@ -370,7 +405,7 @@
                 </main>
             </div>
             {selectedItem && <ViewModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
-            {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} />}
+            {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} exampleItem={exampleData} />}
           </div>
         );
       }
