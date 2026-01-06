@@ -14,52 +14,24 @@
     
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #1e293b; }
-      
-      .bg-gradient-fixed {
-        background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-      }
-
-      /* Scrollbar */
+      .bg-gradient-fixed { background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-      /* Animations */
       .fade-in { animation: fadeIn 0.3s ease-out forwards; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-      /* --- עיצוב חדש וברור למשבצות הכתיבה --- */
-      .input-field { 
-        @apply w-full bg-white border-2 border-black rounded-lg px-4 py-3 outline-none text-sm font-medium text-slate-900 transition-all;
-        /* מסגרת שחורה ועבה כברירת מחדל */
-      }
+      /* עיצוב שדות קלט - עם מסגרת שחורה */
+      .input-field { @apply w-full bg-white border-2 border-black rounded-lg px-4 py-3 outline-none text-sm font-medium text-slate-900 transition-all; }
+      .input-field:hover { @apply bg-slate-50; }
+      .input-field:focus { @apply bg-white ring-4 ring-indigo-500/20 border-black; }
+      .input-field::placeholder { @apply text-slate-400 font-normal; }
+      .input-label { @apply block text-sm font-bold text-slate-800 mb-2 uppercase tracking-wide; }
+      .input-group { @apply mb-6; }
       
-      .input-field:hover {
-        @apply bg-slate-50;
-      }
-
-      .input-field:focus {
-        @apply bg-white ring-4 ring-indigo-500/20 border-black;
-      }
-
-      .input-field::placeholder {
-        @apply text-slate-400 font-normal;
-      }
-      
-      .input-label { 
-        @apply block text-sm font-bold text-slate-800 mb-2 uppercase tracking-wide; 
-        /* הוספתי mb-2 כדי ליצור רווח בין הכותרת למשבצת */
-      }
-      
-      .input-group {
-        @apply mb-6; /* רווח בין שדה לשדה */
-      }
-
-      /* Toast */
       .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 2000; animation: fadeIn 0.3s; }
     </style>
   </head>
@@ -73,13 +45,9 @@
       // --- CONFIGURATION ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      
-      // הכתובת המעודכנת
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
-      
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
-      // --- הגדרת העמודות והאפשרויות ---
       const COLUMNS = [
         { idx: 0, label: 'נושא', type: 'select', options: ['שיווק', 'כספים', 'משאבי אנוש', 'תפעול', 'טכנולוגיה', 'כללי'], required: true },
         { idx: 1, label: 'תת נושא', type: 'text', required: true },
@@ -146,56 +114,86 @@
         return <div className="toast"><Icon name="CheckCircle" size={20} className="text-emerald-400" /><span>{message}</span></div>;
       };
 
-      // --- LOGIN PAGE ---
+      // --- COMPONENTS ---
+
+      // Login Component
       const LoginPage = ({ onLogin, isChecking }) => {
          const [email, setEmail] = useState("");
-         
-         const handleSubmit = (e) => {
-            e.preventDefault();
-            if(email.includes('@')) onLogin(email);
-         };
-
          return (
             <div className="min-h-screen flex items-center justify-center p-4">
                <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center fade-in border border-slate-100">
-                  <div className="bg-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200">
-                     <Icon name="Database" size={40} className="text-white" />
-                  </div>
+                  <div className="bg-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200"><Icon name="Database" size={40} className="text-white" /></div>
                   <h1 className="text-3xl font-bold mb-2 text-slate-800">Analyst Data Hub</h1>
-                  <p className="text-slate-500 mb-8">ברוכים הבאים למאגר המידע המרכזי. <br/>נא להזדהות כדי להמשיך.</p>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                     <div className="relative">
-                        <input 
-                           type="email" 
-                           name="email" 
-                           autoComplete="email" 
-                           placeholder="הכנס את המייל שלך..." 
-                           className="input-field pl-4 pr-12 py-4 text-lg bg-slate-50" 
-                           value={email} 
-                           onChange={e => setEmail(e.target.value)} 
-                           required 
-                           autoFocus
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                           <Icon name="Mail" size={20} />
-                        </div>
-                     </div>
-                     <button disabled={isChecking} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-indigo-200 flex items-center justify-center gap-2">
-                        {isChecking ? <Icon name="Loader2" className="spin" /> : "כניסה למערכת"}
-                     </button>
+                  <p className="text-slate-500 mb-8">ברוכים הבאים למאגר המידע המרכזי.<br/>נא להזדהות כדי להמשיך.</p>
+                  <form onSubmit={(e) => { e.preventDefault(); if(email.includes('@')) onLogin(email); }} className="space-y-4">
+                     <div className="relative"><input type="email" name="email" autoComplete="email" placeholder="הכנס את המייל שלך..." className="input-field pl-4 pr-12 py-4 text-lg bg-slate-50" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /><div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Mail" size={20} /></div></div>
+                     <button disabled={isChecking} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-2">{isChecking ? <Icon name="Loader2" className="spin" /> : "כניסה למערכת"}</button>
                   </form>
-                  <p className="text-xs text-slate-400 mt-6">
-                     * הכניסה מורשית לבעלי הרשאת עריכה בקובץ בלבד.
-                  </p>
+                  <p className="text-xs text-slate-400 mt-6">* הכניסה מורשית לבעלי הרשאת עריכה בקובץ בלבד.</p>
                </div>
             </div>
          );
       };
 
-      // --- COMPONENTS (Card, Form, Modals) ---
+      // Notifications Component
+      const NotificationsModal = ({ onClose, data, userEmail }) => {
+         // Filter items where I am the owner
+         const myItems = data.filter(item => item.values[3] === userEmail);
+         const notifications = [];
 
-      const Card = ({ item, onClick, index }) => {
+         myItems.forEach(item => {
+            const itemName = item.values[1] || item.values[0];
+            // Add followers info
+            if (item.interestedUsers) {
+               const followers = item.interestedUsers.split(",").filter(Boolean);
+               followers.forEach(f => {
+                  if (f !== userEmail) notifications.push({ type: 'follow', user: f, item: itemName, date: null });
+               });
+            }
+            // Add comments info
+            if (item.comments) {
+               try {
+                  const comments = JSON.parse(item.comments);
+                  comments.forEach(c => {
+                     if (c.user !== userEmail) notifications.push({ type: 'comment', user: c.user, item: itemName, date: c.date, text: c.text });
+                  });
+               } catch(e) {}
+            }
+         });
+
+         // Sort roughly (simple implementation since not all have dates)
+         notifications.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
+
+         return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
+               <div className="bg-white rounded-3xl w-full max-w-md flex flex-col max-h-[80vh]" onClick={e=>e.stopPropagation()}>
+                  <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl">
+                     <h2 className="font-bold text-xl text-slate-800 flex items-center gap-2"><Icon name="Bell" size={20}/> ההתראות שלי</h2>
+                     <button onClick={onClose}><Icon name="X" size={20} className="text-slate-500"/></button>
+                  </div>
+                  <div className="p-4 overflow-y-auto">
+                     {notifications.length === 0 ? <p className="text-center text-slate-400 py-10">אין התראות חדשות</p> : 
+                        <div className="space-y-3">
+                           {notifications.map((n, i) => (
+                              <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex gap-3 items-start">
+                                 <div className={`p-2 rounded-full shrink-0 ${n.type==='follow'?'bg-blue-100 text-blue-600':'bg-amber-100 text-amber-600'}`}>
+                                    <Icon name={n.type==='follow'?'UserPlus':'MessageCircle'} size={16} />
+                                 </div>
+                                 <div>
+                                    <p className="text-sm text-slate-800"><span className="font-bold">{n.user.split('@')[0]}</span> {n.type==='follow'?'עוקב אחרי':'הגיב על'} <span className="font-bold text-indigo-600">{n.item}</span></p>
+                                    {n.text && <p className="text-xs text-slate-500 mt-1 bg-white p-1 rounded border border-slate-200">"{n.text}"</p>}
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     }
+                  </div>
+               </div>
+            </div>
+         );
+      };
+
+      const Card = ({ item, onClick, index, userEmail }) => {
         const domain = item.values[0] || "כללי";
         const subTopic = item.values[1] || "ללא כותרת";
         const owner = item.values[2] || "לא צוין";
@@ -216,8 +214,7 @@
         }
 
         return (
-          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
-               className={`group fade-in backdrop-blur-sm rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${color}`}>
+          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} className={`group fade-in backdrop-blur-sm rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${color}`}>
             <div className={`h-1.5 w-full bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${bar}`}></div>
             <div className="p-5 flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
@@ -235,7 +232,6 @@
         );
       };
 
-      // --- טופס דינמי מעוצב ---
       const DynamicForm = ({ title, formData, setFormData, onSubmit, onClose, submitText, isSubmitting, fullData }) => {
          const handleChange = (idx, value) => {
             const newValues = [...formData];
@@ -293,8 +289,15 @@
          const [comment, setComment] = useState("");
          const [editData, setEditData] = useState([...item.values]); 
          const isRequest = item.values[0] === "בקשת מידע";
+         
+         // Permission Logic
+         const canEdit = userEmail === MANAGER_EMAIL || userEmail === item.values[3];
+
          let commentsList = [];
          try { commentsList = item.comments ? JSON.parse(item.comments) : []; } catch (e) { commentsList = []; }
+         
+         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
+         const isFollowing = followers.includes(userEmail);
 
          const handleUpdate = async (isConvert = false) => {
             setIsSubmitting(true);
@@ -311,7 +314,6 @@
          }
 
          const handleComment = async () => {
-            if(!userEmail) return alert("נדרש להתחבר");
             if(!comment) return;
             await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addComment', id: item.id, userEmail, text: comment }) });
             setToast("תגובה נוספה"); setTimeout(() => { onRefresh(); onClose(); }, 500);
@@ -319,7 +321,7 @@
 
          const handleFollow = async () => {
             await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggleFollow', id: item.id, userEmail }) });
-            setToast("עודכן"); setTimeout(() => { onRefresh(); onClose(); }, 500);
+            setToast(isFollowing ? "הוסר מעקב" : "במעקב"); setTimeout(() => { onRefresh(); onClose(); }, 500);
          }
 
          if (mode === 'edit') return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 fade-in" onClick={onClose}><DynamicForm title={isRequest ? "הפיכה למקור" : "עריכה"} formData={editData} setFormData={setEditData} fullData={fullData} onSubmit={()=>handleUpdate(isRequest)} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
@@ -330,8 +332,10 @@
                   <div className={`p-6 border-b flex justify-between items-start sticky top-0 bg-white z-10 ${isRequest?'bg-orange-50':''}`}>
                      <div><div className="flex gap-2 mb-2"><span className="text-xs font-bold px-2 py-1 rounded bg-slate-100">{item.values[0]}</span>{isRequest && <span className="text-xs text-orange-600 font-bold animate-pulse">בקשה</span>}</div><h2 className="text-2xl font-bold">{item.values[1]}</h2></div>
                      <div className="flex gap-2">
-                        <button onClick={()=>setMode('edit')} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Edit3" size={18}/></button>
-                        <button onClick={handleFollow} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Bell" size={18}/></button>
+                        {canEdit && <button onClick={()=>setMode('edit')} className="p-2 border rounded-full hover:bg-slate-50" title="ערוך"><Icon name="Edit3" size={18}/></button>}
+                        <button onClick={handleFollow} className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${isFollowing ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                           {isFollowing ? <><Icon name="Check" size={16}/> במעקב</> : "עקוב"}
+                        </button>
                         <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full"><Icon name="X" size={24}/></button>
                      </div>
                   </div>
@@ -346,7 +350,11 @@
                      {isRequest && (
                         <div className="bg-indigo-600 text-white p-6 rounded-2xl flex justify-between items-center shadow-lg">
                            <div><div className="font-bold">מצאת את הנתונים?</div><div className="text-sm text-indigo-200">עדכן למקור וסגור את הבקשה</div></div>
-                           <button onClick={()=>setMode('edit')} className="bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50">עדכן למקור</button>
+                           <button onClick={()=>{
+                              // אם אין הרשאה - לא נאפשר
+                              if (!canEdit) { alert("רק מי שפתח את הבקשה יכול לעדכן אותה"); return; }
+                              setMode('edit');
+                           }} className={`bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50 ${!canEdit && 'opacity-50 cursor-not-allowed'}`}>עדכן למקור</button>
                         </div>
                      )}
                      <div className="border-t pt-4">
@@ -386,7 +394,11 @@
                   <div className="p-8 overflow-y-auto">
                      {step===1 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם בדקת בקטלוג?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border rounded-2xl font-bold hover:bg-slate-50">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700">בדקתי, אין</button></div></div>}
                      {step===2 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם חיפשת באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400 hover:text-slate-600">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold shadow-lg hover:bg-cyan-700">חיפשתי, אין</button></div></div>}
-                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4"><div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div><div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" required name="email" autoComplete="email" className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div><button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button></form></div>}
+                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div>
+                        <div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div>
+                        <div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" required name="email" autoComplete="email" className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div>
+                        <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button></form></div>}
                   </div>
                </div>
             </div>
@@ -418,6 +430,7 @@
         const [selectedItem, setSelectedItem] = useState(null);
         const [showAddModal, setShowAddModal] = useState(false);
         const [showRequestModal, setShowRequestModal] = useState(false);
+        const [showNotifications, setShowNotifications] = useState(false);
         const [toastMsg, setToastMsg] = useState(null);
         const [userEmail, setUserEmail] = useState("");
         const [isCheckingAuth, setIsCheckingAuth] = useState(false);
@@ -487,6 +500,7 @@
                    <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 hover:bg-indigo-50 flex items-center gap-2"><Icon name="CircleHelp" size={16} /> בקשה</button>
                    <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-800 flex items-center gap-2"><Icon name="Plus" size={16} /> הוספה</button>
                    <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"><Icon name="RefreshCw" size={18} className={isLoading?"spin text-indigo-600":"text-slate-500"}/></button>
+                   <button onClick={() => setShowNotifications(true)} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 relative"><Icon name="Bell" size={18} /><span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span></button>
                    <button onClick={() => { localStorage.removeItem('userEmail'); setUserEmail(""); }} className="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl hover:bg-red-100" title="התנתק"><Icon name="LogOut" size={18} /></button>
                 </div>
              </header>
@@ -502,7 +516,7 @@
                 {isLoading && data.length === 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{[1,2,3,4,5,6].map(i => (<div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3"><div className="h-6 bg-slate-100 rounded w-1/3"></div><div className="h-8 bg-slate-200 rounded w-3/4"></div><div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div></div>))}</div>
                 ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />))}</div>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} userEmail={userEmail} />))}</div>
                 )}
                 {!isLoading && filteredData.length === 0 && <div className="text-center py-20 text-slate-400"><Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/><p className="text-xl font-medium">לא נמצאו תוצאות</p></div>}
              </div>
@@ -510,6 +524,7 @@
              {selectedItem && <ViewEditModal item={selectedItem} onClose={()=>setSelectedItem(null)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} fullData={data} />}
              {showAddModal && <AddDataWrapper onClose={()=>setShowAddModal(false)} onRefresh={fetchData} fullData={data} setToast={setToastMsg} userEmail={userEmail} />}
              {showRequestModal && <RequestWizard onClose={()=>setShowRequestModal(false)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} />}
+             {showNotifications && <NotificationsModal onClose={()=>setShowNotifications(false)} data={data} userEmail={userEmail} />}
              {toastMsg && <Toast message={toastMsg} onClose={()=>setToastMsg(null)} />}
           </div>
         );
@@ -520,5 +535,4 @@
     </script>
   </body>
 </html>
-
 
