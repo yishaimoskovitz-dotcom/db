@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyst Data Hub</title>
-    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,30 +13,15 @@
     
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #1e293b; }
-      
-      .bg-gradient-fixed {
-        background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-      }
-
-      /* Scrollbar */
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-      /* Animations */
+      .bg-gradient-fixed { background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
       .fade-in { animation: fadeIn 0.3s ease-out forwards; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-      /* Inputs */
       .input-field { @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm shadow-sm; }
       .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
-      
-      /* Toast */
       .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 2000; animation: fadeIn 0.3s; }
+      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
   </head>
   <body>
@@ -47,39 +31,19 @@
     <script type="text/babel">
       const { useState, useEffect, useMemo, useRef } = React;
 
-      // --- CONFIGURATION ---
+      // --- הגדרות ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      // *** הכתובת שלך ***
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlsr40zERbMUCy0t---RYvE3vT91HmoLB_RTM9znEuOG-rveosfua2rmKJd60Io6S0/exec"; 
+      
+      // *** הכתובת החדשה שלך ***
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmt0UQRaFXcJ1b72YVwm-O86bXIR_eL7tkXsUZyh5Z6xMeLqTtx5Pq8jUYwbqvVC09/exec"; 
+      
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
-
-      // --- הגדרת 16 העמודות הקבועות ---
-      const COLUMNS = [
-        { id: 'col0', label: 'נושא', type: 'text', required: true },
-        { id: 'col1', label: 'תת נושא', type: 'text', required: true },
-        { id: 'col2', label: 'אחראי', type: 'text' },
-        { id: 'col3', label: 'אימייל אחראי', type: 'email' },
-        { id: 'col4', label: 'תיאור מקור', type: 'textarea' },
-        { id: 'col5', label: 'שם המקור', type: 'text' },
-        { id: 'col6', label: 'טבלה מטויבת', type: 'text' },
-        { id: 'col7', label: 'מקור (קישור)', type: 'text' }, // הופך ללינק אוטומטית
-        { id: 'col8', label: 'שם לקוח', type: 'text' },
-        { id: 'col9', label: 'איש קשר', type: 'text' },
-        { id: 'col10', label: 'אופן העברה', type: 'text' },
-        { id: 'col11', label: 'רגישות הנתונים', type: 'text' },
-        { id: 'col12', label: 'תדירות העברה', type: 'text' },
-        { id: 'col13', label: 'סוג המקור', type: 'text' },
-        { id: 'col14', label: 'איכות המקור', type: 'text' },
-        { id: 'col15', label: 'עדכון אחרון', type: 'date', auto: true }
-      ];
 
       // --- UTILS ---
       const parseCSV = (str) => {
         const arr = [];
-        let quote = false;
-        let col = 0, row = 0;
-        let c = 0;
+        let quote = false, col = 0, row = 0, c = 0;
         for (; c < str.length; c++) {
           let cc = str[c], nc = str[c+1];
           arr[row] = arr[row] || [];
@@ -116,75 +80,64 @@
 
       function Linkify({ content }) {
         if (typeof content !== 'string') return content;
-        const parts = content.split(/((?:https?:\/\/|www\.)[^\s]+|(?:#[\w\u0590-\u05FF]+))/g);
-        return (
-           <>{parts.map((p, i) => {
-              if (p.match(/^(https?:\/\/|www\.)/)) {
-                 const href = p.startsWith('www.') ? `https://${p}` : p;
-                 return <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline z-10 relative break-all font-medium" onClick={e=>e.stopPropagation()}>{p}</a>;
-              }
-              if (p.match(/^#/)) return <span key={i} className="text-pink-600 font-bold bg-pink-50 px-1 rounded">{p}</span>;
-              return p;
-           })}</>
-        );
-      }
+        const parts = content.split(/((?:https?:\/\/|www\.)[^\s]+)/g);
+        return <>{parts.map((p, i) => p.match(/^(https?:\/\/|www\.)/) ? <a key={i} href={p.startsWith('www') ? `https://${p}` : p} target="_blank" className="text-indigo-600 hover:underline font-medium" onClick={e=>e.stopPropagation()}>{p}</a> : p)}</>;
+      };
 
-      function Toast({ message, onClose }) {
+      const Toast = ({ message, onClose }) => {
         useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
         return <div className="toast"><Icon name="CheckCircle" size={20} className="text-emerald-400" /><span>{message}</span></div>;
-      }
+      };
 
-      function AuthModal({ email, setEmail, onLogin, onClose }) {
-         return (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-               <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600"><Icon name="Lock" size={32} /></div>
-                  <h3 className="text-xl font-bold mb-2 text-slate-800">הזדהות משתמש</h3>
-                  <p className="text-slate-500 text-sm mb-6">כדי לבצע פעולה זו נדרש אימייל.</p>
-                  <form onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
-                     <input type="email" name="email" autoComplete="email" placeholder="your@email.com" className="input-field mb-4 text-center" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-                     <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg">המשך</button>
-                  </form>
-               </div>
-            </div>
-         );
-      }
+      const getDomainColor = (domain) => {
+        if (!domain) return "bg-gray-100 text-gray-700 border-gray-200";
+        if (domain === "בקשת מידע") return "bg-orange-50 text-orange-700 border-orange-200 dashed-border";
+        const d = domain.toString().toLowerCase();
+        if (d.includes("שיווק")) return "bg-blue-50 text-blue-700 border-blue-200";
+        if (d.includes("כספים")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+        if (d.includes("טכנולוגיה")) return "bg-cyan-50 text-cyan-700 border-cyan-200";
+        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      };
 
-      // --- UNIFIED FORM (Supports all 16 columns) ---
-      function UnifiedForm({ title, initialData, onSubmit, isSubmitting, onClose, exampleData }) {
-         const [formData, setFormData] = useState(initialData);
+      // --- Forms ---
+      const DynamicForm = ({ title, initialData, onSubmit, onClose, headers, submitText, isSubmitting, fullData }) => {
+         const [formData, setFormData] = useState(initialData || Array(headers.length).fill(""));
 
-         const getPlaceholder = (colId) => {
-            const colIndex = parseInt(colId.replace('col',''));
-            if (exampleData && exampleData.rawRow && exampleData.rawRow[colIndex]) return `למשל: ${exampleData.rawRow[colIndex]}`;
+         const getPlaceholder = (colIndex) => {
+            for(let i=0; i<Math.min(fullData.length, 10); i++) {
+               const val = fullData[i].values[colIndex];
+               if(val) return `למשל: ${val}`;
+            }
             return "";
-         };
+         }
 
          return (
             <div className="bg-white rounded-3xl w-full max-w-lg flex flex-col max-h-[90vh] fade-in" onClick={e=>e.stopPropagation()}>
-               <div className="p-6 border-b flex justify-between items-center bg-slate-50/80 rounded-t-3xl backdrop-blur-sm sticky top-0 z-10">
+               <div className="p-6 border-b flex justify-between items-center bg-slate-50 sticky top-0 z-10 rounded-t-3xl">
                   <h2 className="font-bold text-xl text-slate-800">{title}</h2>
-                  <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition"><Icon name="X" size={20} className="text-slate-500"/></button>
+                  <button onClick={onClose}><Icon name="X" size={20} className="text-slate-500"/></button>
                </div>
-               
                <div className="p-6 overflow-y-auto custom-scrollbar">
-                  <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-5">
-                     {COLUMNS.map((col) => {
-                        if (col.auto) return null; // Don't show auto fields (like date)
+                  <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
+                     {headers.map((header, idx) => {
+                        const isDate = header.includes("תאריך") || header.includes("עדכון");
+                        const isLong = header.includes("תיאור") || header.includes("מידע") || header.includes("פירוט");
+                        if (isDate) return null; // Auto date hidden
+
                         return (
-                           <div key={col.id}>
-                              <label className="input-label">{col.label}</label>
-                              {col.type === 'textarea' ? (
-                                 <textarea className="input-field min-h-[100px] resize-none" placeholder={getPlaceholder(col.id)} value={formData[col.id] || ''} onChange={e=>setFormData({...formData, [col.id]: e.target.value})} />
+                           <div key={idx}>
+                              <label className="input-label">{header}</label>
+                              {isLong ? (
+                                 <textarea className="input-field min-h-[80px] resize-none" placeholder={getPlaceholder(idx)} value={formData[idx] || ''} onChange={e => { const n=[...formData]; n[idx]=e.target.value; setFormData(n); }} />
                               ) : (
-                                 <input type={col.type} className="input-field" placeholder={getPlaceholder(col.id)} value={formData[col.id] || ''} onChange={e=>setFormData({...formData, [col.id]: e.target.value})} required={col.required} />
+                                 <input className="input-field" placeholder={getPlaceholder(idx)} value={formData[idx] || ''} onChange={e => { const n=[...formData]; n[idx]=e.target.value; setFormData(n); }} />
                               )}
                            </div>
                         )
                      })}
-                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 shadow-lg mt-6 disabled:opacity-70 transition-all flex justify-center items-center gap-2">
+                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg flex justify-center gap-2 mt-6 disabled:opacity-70">
                         {isSubmitting ? <Icon name="Loader2" className="spin" /> : <Icon name="Save" size={18} />}
-                        {isSubmitting ? 'שומר...' : 'שמור נתונים'}
+                        {isSubmitting ? 'שומר...' : submitText}
                      </button>
                   </form>
                </div>
@@ -192,90 +145,150 @@
          );
       }
 
-      // --- REQUEST WIZARD ---
-      function RequestSourceWizard({ onClose, onRefresh, setToast, userEmail, setUserEmail }) {
-        const [step, setStep] = useState(1);
-        const [isSubmitting, setIsSubmitting] = useState(false);
-        const [requestData, setRequestData] = useState({ 
-           requesterName: '', 
-           requesterEmail: userEmail || '', 
-           targetOffice: '', 
-           dataDesc: ''
-        });
+      // --- Modals Logic ---
+      const ViewEditModal = ({ item, onClose, onRefresh, headers, setToast, userEmail, fullData }) => {
+         const [mode, setMode] = useState('view');
+         const [isSubmitting, setIsSubmitting] = useState(false);
+         const [comment, setComment] = useState("");
+         
+         const isRequest = item.values[headers.findIndex(h=>h.includes("נושא"))] === "בקשת מידע";
+         const commentsList = item.comments ? JSON.parse(item.comments) : [];
 
-        const handleSubmitRequest = async (e) => {
-          e.preventDefault(); 
-          setIsSubmitting(true);
-          
-          if (requestData.requesterEmail) localStorage.setItem('userEmail', requestData.requesterEmail);
+         const handleUpdate = async (newDataArray) => {
+            setIsSubmitting(true);
+            const dateIdx = headers.findIndex(h=>h.includes("תאריך") || h.includes("עדכון"));
+            if(dateIdx !== -1) newDataArray[dateIdx] = new Date().toLocaleDateString('he-IL');
+            
+            if(isRequest && newDataArray[headers.findIndex(h=>h.includes("נושא"))] === "בקשת מידע") {
+               newDataArray[headers.findIndex(h=>h.includes("נושא"))] = ""; 
+            }
 
-          // מיפוי השדות למבנה 16 העמודות
-          const payload = { 
-            action: 'create', 
-            col0: "בקשת מידע", // נושא
-            col1: requestData.dataDesc, // תיאור הבקשה נכנס לתת נושא
-            col2: requestData.requesterName, // המבקש נכנס לאחראי
-            col3: requestData.requesterEmail, // אימייל אחראי
-            col5: requestData.targetOffice, // שם המקור (למי פונים)
-            col15: new Date().toLocaleDateString('he-IL') // תאריך
-          };
+            try {
+               await fetch(APPS_SCRIPT_URL, { 
+                  method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, 
+                  body: JSON.stringify({ action: 'update', id: item.id, values: newDataArray, status: isRequest ? 'Closed' : 'Open' }) 
+               });
+               setToast("עודכן בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 1000);
+            } catch(e) { setIsSubmitting(false); alert("שגיאה"); }
+         }
 
-          try { 
-            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
-            setToast("הבקשה נפתחה בהצלחה!"); 
-            setTimeout(() => { onRefresh(); onClose(); }, 500); 
-          } catch (error) { alert("שגיאה"); } finally { setIsSubmitting(false); }
-        };
+         const handleComment = async () => {
+            if(!userEmail) return alert("נדרש להתחבר");
+            if(!comment) return;
+            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addComment', id: item.id, userEmail, text: comment }) });
+            setToast("תגובה נוספה"); setTimeout(() => { onRefresh(); onClose(); }, 500);
+         }
 
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              <div className="bg-indigo-600 p-8 text-white text-center relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-full bg-white/10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div><div className="relative z-10"><h2 className="text-2xl font-bold mb-1">{step === 1 ? 'בדיקת קטלוג' : step === 2 ? 'בדיקת רשת' : 'פתיחת בקשה'}</h2><div className="flex justify-center gap-2 mt-4">{[1,2,3].map(s => <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s === step ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}></div>)}</div></div><button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-white/20 rounded-full transition"><Icon name="X" size={20} /></button></div>
-              <div className="p-8 overflow-y-auto">
-                {step === 1 && (<div className="text-center space-y-6 fade-in"><div className="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><Icon name="Library" size={40} className="text-indigo-600" /></div><h3 className="text-xl font-bold text-slate-800">האם בדקת אם הנתונים נמצאים בקטלוג?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border border-slate-200 rounded-2xl text-slate-600 font-bold hover:bg-slate-50 transition-all">בודק שוב...</button><button onClick={() => setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">בדקתי, לא נמצא</button></div></div>)}
-                {step === 2 && (<div className="text-center space-y-6 fade-in"><div className="bg-cyan-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner"><Icon name="Globe" size={40} className="text-cyan-600" /></div><h3 className="text-xl font-bold text-slate-800">האם המידע פומבי? ניסית לחפש באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={() => setStep(1)} className="px-6 py-4 text-slate-400 font-bold hover:text-slate-600">חזור</button><button onClick={() => setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold hover:bg-cyan-700 shadow-lg shadow-cyan-200 transition-all">חיפשתי, אין כלום</button></div></div>)}
-                {step === 3 && (<div className="space-y-6 fade-in"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm leading-relaxed mb-4">מעולה, שלח מייל לאיש הקשר במשרד ובמקביל פתח כאן פנייה חדשה.</p><div className="flex items-center justify-center gap-2 text-indigo-600 bg-white p-2 rounded-xl border border-indigo-100 cursor-pointer hover:border-indigo-300 transition" onClick={() => { navigator.clipboard.writeText(MANAGER_EMAIL); alert("המייל הועתק!"); }}><Icon name="Mail" size={16} /><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmitRequest} className="space-y-4"><div className="input-group"><label className="input-label">אילו נתונים אתה מחפש?</label><input required className="input-field" placeholder="למשל: נתוני תאונות דרכים 2024" value={requestData.dataDesc} onChange={e => setRequestData({...requestData, dataDesc: e.target.value})} /></div><div className="input-group"><label className="input-label">לאיזה משרד אתה פונה?</label><input required className="input-field" placeholder="למשל: הלמ״ס" value={requestData.targetOffice} onChange={e => setRequestData({...requestData, targetOffice: e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div className="input-group"><label className="input-label">שם מלא</label><input required className="input-field" placeholder="ישראל ישראלי" value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} /></div><div className="input-group"><label className="input-label">מייל</label><input type="email" name="email" autoComplete="email" required className="input-field" placeholder="your@email.com" value={requestData.requesterEmail} onChange={e => setRequestData({...requestData, requesterEmail: e.target.value})} /></div></div><button type="submit" disabled={isSubmitting} className={`w-full bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>{isSubmitting ? <Icon name="Loader2" className="spin"/> : <><Icon name="CheckCircle" size={20}/> פתח בקשה</>}</button></form></div>)}
-              </div>
-            </div></div>
-        );
-      }
+         const handleFollow = async () => {
+            if(!userEmail) return alert("נדרש להתחבר");
+            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggleFollow', id: item.id, userEmail }) });
+            setToast("עודכן"); setTimeout(() => { onRefresh(); onClose(); }, 500);
+         }
 
-      // --- CARD ---
-      function Card({ item, onClick, index }) {
-        const isRequest = item.col0 === "בקשת מידע";
-        const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean).length : 0;
-        const comments = item.comments ? JSON.parse(item.comments).length : 0;
-        
-        let colorClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
-        if (isRequest) colorClass = "bg-orange-50 text-orange-700 border-orange-200 dashed-border";
-        else if (item.col0.includes("שיווק")) colorClass = "bg-blue-50 text-blue-700 border-blue-200";
-        else if (item.col0.includes("כספים")) colorClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-        
-        return (
-          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
-               className={`group fade-in bg-white/80 backdrop-blur-sm rounded-2xl border ${isRequest ? 'border-orange-200 border-dashed bg-orange-50/30' : 'border-slate-200/60'} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative`}>
-            <div className={`h-1.5 w-full bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${colorClass.split(" ")[0].replace("bg-", "bg-")}`}></div>
-            <div className="p-5 flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border tracking-wide uppercase ${colorClass}`}>
-                  {isRequest ? "תהליך פנייה" : item.col1 || item.col0}
-                </span>
-                <div className="flex gap-2 text-slate-400 text-[10px] items-center">
-                  {(followers > 0 || comments > 0) && <div className="flex gap-2 bg-white/50 px-2 py-1 rounded-lg border border-slate-100">{followers > 0 && <span className="flex items-center gap-0.5"><Icon name="Bell" size={10} /> {followers}</span>}{comments > 0 && <span className="flex items-center gap-0.5"><Icon name="MessageSquare" size={10} /> {comments}</span>}</div>}
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3 group-hover:text-indigo-600 transition-colors">{isRequest ? item.col1 : item.col0}</h3>
-              <div className="mt-auto pt-4 border-t border-slate-200/50 flex items-center justify-between text-slate-500 text-sm">
-                 <div className="flex items-center gap-2"><div className={`p-1.5 rounded-full ${isRequest ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}><Icon name={isRequest ? "HelpCircle" : "User"} size={14} /></div><span className="truncate max-w-[120px] font-medium">{item.col2 || "לא צוין"}</span></div>
-              </div>
+         if (mode === 'edit') return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 fade-in" onClick={onClose}><DynamicForm title={isRequest ? "הפיכה למקור" : "עריכה"} initialData={item.values} headers={headers} fullData={fullData} onSubmit={handleUpdate} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
+
+         return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
+               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e=>e.stopPropagation()}>
+                  <div className={`p-6 border-b flex justify-between items-start sticky top-0 bg-white z-10 ${isRequest?'bg-orange-50':''}`}>
+                     <div><div className="flex gap-2 mb-2"><span className="text-xs font-bold px-2 py-1 rounded bg-slate-100">{item.values[0]}</span>{isRequest && <span className="text-xs text-orange-600 font-bold animate-pulse">בקשה</span>}</div><h2 className="text-2xl font-bold">{item.values[1]}</h2></div>
+                     <div className="flex gap-2">
+                        <button onClick={()=>{if(!userEmail){alert("התחבר תחילה"); return;} setMode('edit')}} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Edit3" size={18}/></button>
+                        <button onClick={handleFollow} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Bell" size={18}/></button>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full"><Icon name="X" size={24}/></button>
+                     </div>
+                  </div>
+                  <div className="p-6 space-y-6">
+                     <div className="grid grid-cols-1 gap-4">
+                        {headers.map((h, i) => (
+                           <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                              <div className="text-xs font-bold text-slate-400 uppercase mb-1">{h}</div>
+                              <div className="break-words text-slate-800"><Linkify content={item.values[i] || "-"} /></div>
+                           </div>
+                        ))}
+                     </div>
+                     {isRequest && (
+                        <div className="bg-indigo-600 text-white p-6 rounded-2xl flex justify-between items-center shadow-lg">
+                           <div><div className="font-bold">מצאת את הנתונים?</div><div className="text-sm text-indigo-200">עדכן למקור וסגור את הבקשה</div></div>
+                           <button onClick={()=>{if(!userEmail){alert("התחבר");return;} setMode('edit')}} className="bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50">עדכן למקור</button>
+                        </div>
+                     )}
+                     <div className="border-t pt-4">
+                        <h3 className="font-bold mb-4 flex gap-2 text-sm"><Icon name="MessageCircle" size={16}/> תגובות</h3>
+                        <div className="space-y-3 mb-4 max-h-40 overflow-y-auto">{commentsList.map((c,i)=><div key={i} className="bg-slate-50 p-3 rounded-xl text-sm"><span className="font-bold block text-xs text-slate-400">{c.user.split('@')[0]}</span>{c.text}</div>)}</div>
+                        <div className="flex gap-2"><input className="input-field" placeholder="הגב..." value={comment} onChange={e=>setComment(e.target.value)} /><button onClick={handleComment} className="bg-slate-900 text-white p-3 rounded-xl"><Icon name="Send" size={18}/></button></div>
+                     </div>
+                  </div>
+               </div>
             </div>
-          </div>
-        );
+         );
       }
+
+      const RequestWizard = ({ onClose, onRefresh, setToast, userEmail, headers }) => {
+         const [step, setStep] = useState(1);
+         const [isSubmitting, setIsSubmitting] = useState(false);
+         const [reqData, setReqData] = useState({ desc: '', office: '', name: '', email: userEmail || '' });
+
+         const handleSubmit = async (e) => {
+            e.preventDefault(); setIsSubmitting(true);
+            if(reqData.email) localStorage.setItem('userEmail', reqData.email);
+            
+            // בניית מערך נתונים לפי סדר הכותרות
+            const values = Array(headers.length).fill("");
+            const idx = (name) => headers.findIndex(h => h.includes(name));
+            
+            // ניסיון למפות לשדות הנכונים - הגישה הדינמית
+            if(idx("נושא") > -1) values[idx("נושא")] = "בקשת מידע";
+            if(idx("תת") > -1) values[idx("תת")] = reqData.desc;
+            if(idx("שם המקור") > -1) values[idx("שם המקור")] = reqData.desc; // Fallback
+            if(idx("אחראי") > -1) values[idx("אחראי")] = reqData.name;
+            if(idx("אימייל") > -1) values[idx("אימייל")] = reqData.email;
+            
+            // שדות ספציפיים לבקשה
+            const officeIdx = headers.findIndex(h => h.includes("משרד") || h.includes("שם המקור") || h.includes("למי"));
+            if(officeIdx > -1) values[officeIdx] = reqData.office;
+
+            const dateIdx = headers.findIndex(h => h.includes("תאריך") || h.includes("עדכון"));
+            if(dateIdx > -1) values[dateIdx] = new Date().toLocaleDateString('he-IL');
+
+            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values }) }); 
+            setToast("נפתח בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch(e) { alert("שגיאה"); } finally { setIsSubmitting(false); }
+         };
+
+         return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
+               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e=>e.stopPropagation()}>
+                  <div className="bg-indigo-600 p-8 text-white text-center relative"><h2 className="text-2xl font-bold relative z-10">{step===1?'בדיקת קטלוג':step===2?'בדיקת רשת':'פתיחת בקשה'}</h2><button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-white/20 rounded-full"><Icon name="X" size={20}/></button></div>
+                  <div className="p-8 overflow-y-auto">
+                     {step===1 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם בדקת בקטלוג?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border rounded-2xl font-bold">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg">בדקתי, אין</button></div></div>}
+                     {step===2 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם חיפשת באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold shadow-lg">חיפשתי, אין</button></div></div>}
+                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4"><div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div><div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" required name="email" autoComplete="email" className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div><button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CheckCircle" size={20}/> פתח בקשה</>}</button></form></div>}
+                  </div>
+               </div>
+            </div>
+         );
+      };
+
+      const AddDataWrapper = ({ onClose, onRefresh, headers, fullData, setToast, userEmail }) => {
+         const [isSubmitting, setIsSubmitting] = useState(false);
+         const handleSubmit = async (formDataArray) => {
+            setIsSubmitting(true);
+            const newData = [...formDataArray];
+            const dateIdx = headers.findIndex(h=>h.includes("תאריך") || h.includes("עדכון"));
+            if(dateIdx !== -1) newData[dateIdx] = new Date().toLocaleDateString('he-IL');
+            const ownerIdx = headers.findIndex(h=>h.includes("אחראי") || h.includes("מייל"));
+            if(ownerIdx !== -1 && !newData[ownerIdx]) newData[ownerIdx] = userEmail;
+
+            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values: newData }) }); 
+            setToast("הנתונים נוספו!"); setTimeout(() => { onRefresh(); onClose(); }, 1500); } catch(e) { setIsSubmitting(false); alert("שגיאה"); }
+         };
+         return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}><DynamicForm title="הוספת נתונים" headers={headers} fullData={fullData} onSubmit={handleSubmit} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור" /></div>;
+      };
 
       // --- MAIN APP ---
       function App() {
         const [data, setData] = useState([]);
+        const [headers, setHeaders] = useState([]);
         const [searchTerm, setSearchTerm] = useState("");
         const [selectedDomain, setSelectedDomain] = useState(null);
         const [isLoading, setIsLoading] = useState(true);
@@ -295,17 +308,18 @@
             const rows = parseCSV(text);
             if (rows.length < 2) { setData([]); return; }
             
-            // מיפוי לפי 16 העמודות הקבועות (0-15) + מערכת
+            const rawHeaders = rows[0];
+            const visibleHeaderCount = rawHeaders.length - 3; 
+            const visibleHeaders = rawHeaders.slice(0, visibleHeaderCount).map(h=>h.trim());
+            setHeaders(visibleHeaders);
+
             const newData = rows.slice(1).map((row, index) => {
                if (row.length < 2) return null;
-               const item = { id: index, rawRow: row };
-               // מיפוי ל-col0 עד col15
-               for(let i=0; i<16; i++) item[`col${i}`] = row[i] || "";
-               // עמודות מערכת (16, 17, 18)
-               item.interestedUsers = row[16] || "";
-               item.comments = row[17] || "[]";
-               item.status = row[18] || "Open";
-               return item;
+               const values = row.slice(0, visibleHeaderCount);
+               const followers = row[rawHeaders.length - 3] || "";
+               const comments = row[rawHeaders.length - 2] || "[]";
+               const status = row[rawHeaders.length - 1] || "Open";
+               return { id: index, values, followers, comments, status };
             }).filter(i => i);
             setData(newData);
           } catch (err) { console.error(err); } finally { setIsLoading(false); }
@@ -313,28 +327,31 @@
 
         useEffect(() => { fetchData(); }, []);
 
-        const exampleData = useMemo(() => data.length > 0 ? data[0] : null, [data]);
-
         const filteredData = useMemo(() => data.filter(item => {
             const term = searchTerm.toLowerCase();
-            const allText = Object.values(item).join(" ").toLowerCase();
-            return allText.includes(term) && (selectedDomain ? item.col0 === selectedDomain : true);
+            const allText = item.values.join(" ").toLowerCase();
+            return allText.includes(term) && (selectedDomain ? item.values[0] === selectedDomain : true);
         }), [data, searchTerm, selectedDomain]);
 
-        const domains = [...new Set(data.map(i => i.col0).filter(d => d && d !== "בקשת מידע"))].filter(Boolean);
+        const domains = [...new Set(data.map(i => i.values[0]).filter(d => d && d !== "בקשת מידע"))].filter(Boolean);
 
-        const handleAddSubmit = async (formData) => {
-           if (!userEmail) return alert("שגיאה: חסר מייל");
-           localStorage.setItem('userEmail', userEmail);
-           
-           const payload = { action: 'create', ...formData };
-           payload.col15 = new Date().toLocaleDateString('he-IL'); // תאריך אוטומטי
-           if(!payload.col3) payload.col3 = userEmail; // אימייל אחראי אוטומטי
-
-           await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-           setToastMsg("הנתונים נוספו בהצלחה!");
-           setTimeout(() => { fetchData(); setShowAddModal(false); }, 1500);
-        };
+        const Card = ({ item, onClick }) => {
+           const isRequest = item.values[0] === "בקשת מידע";
+           const comments = item.comments ? JSON.parse(item.comments).length : 0;
+           return (
+              <div onClick={onClick} className={`group bg-white p-5 rounded-2xl border ${isRequest ? 'border-orange-200 border-dashed' : 'border-slate-200'} shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col h-full fade-in`}>
+                 <div className="flex justify-between items-start mb-3">
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${isRequest ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'}`}>{item.values[0]}</span>
+                    {comments > 0 && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Icon name="MessageSquare" size={10}/> {comments}</span>}
+                 </div>
+                 <h3 className="font-bold text-slate-800 text-lg mb-4 leading-snug">{item.values[1]}</h3>
+                 <div className="mt-auto flex items-center gap-2 text-sm text-slate-500">
+                    <div className="p-1.5 bg-slate-100 rounded-full"><Icon name="User" size={14}/></div>
+                    <span className="truncate">{item.values[2] || "לא צוין"}</span>
+                 </div>
+              </div>
+           )
+        }
 
         return (
           <div className="min-h-screen pb-20">
@@ -343,137 +360,46 @@
                    <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-200"><Icon name="Database" size={20} /></div> 
                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Analyst Data Hub</span>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
-                   <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap border border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm flex items-center gap-2"><Icon name="HelpCircle" size={16} /> בקשה חדשה</button>
-                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap shadow-lg hover:bg-slate-800 hover:shadow-xl transition-all flex items-center gap-2"><Icon name="Plus" size={16} /> הוסף נתונים</button>
-                   <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"><Icon name="RefreshCw" size={18} className={isLoading?"spin text-indigo-600":"text-slate-500"}/></button>
+                <div className="flex gap-2">
+                   <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 hover:bg-indigo-50 flex items-center gap-2"><Icon name="HelpCircle" size={16} /> בקשה</button>
+                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-800 flex items-center gap-2"><Icon name="Plus" size={16} /> הוספה</button>
+                   <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50"><Icon name="RefreshCw" size={18} className={isLoading?"spin text-indigo-600":"text-slate-500"}/></button>
                 </div>
              </header>
 
              <div className="max-w-7xl mx-auto px-4 mt-8">
-                <div className="mb-8 relative group">
-                   <input placeholder="חיפוש חופשי בכל המאגר..." className="w-full bg-white p-4 pl-12 rounded-2xl border border-slate-200 shadow-sm focus:shadow-md focus:border-indigo-500 transition-all outline-none font-medium" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
-                   <Icon name="Search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                </div>
+                <div className="mb-8 relative"><input placeholder="חיפוש חופשי..." className="w-full bg-white p-4 pl-12 rounded-2xl border border-slate-200 shadow-sm outline-none" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} /><Icon name="Search" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /></div>
                 <div className="flex flex-wrap gap-2 mb-8">
-                   <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${!selectedDomain?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>הכל</button>
-                   <button onClick={() => setSelectedDomain("בקשת מידע")} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${selectedDomain==="בקשת מידע"?'bg-orange-500 text-white shadow-lg shadow-orange-200 scale-105':'bg-white text-orange-600 border border-orange-200 hover:bg-orange-50'}`}>בקשות פתוחות</button>
-                   {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${selectedDomain===d?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>{d}</button>)}
+                   <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl font-bold text-sm ${!selectedDomain?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>הכל</button>
+                   <button onClick={() => setSelectedDomain("בקשת מידע")} className={`px-4 py-2 rounded-xl font-bold text-sm ${selectedDomain==="בקשת מידע"?'bg-orange-500 text-white shadow-lg shadow-orange-200 scale-105':'bg-white text-orange-600 border border-orange-200 hover:bg-orange-50'}`}>בקשות</button>
+                   {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl font-bold text-sm ${selectedDomain===d?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>{d}</button>)}
                 </div>
 
-                {isLoading && data.length === 0 ? (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{[1,2,3,4,5,6].map(i => (<div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3"><div className="h-6 bg-slate-100 rounded w-1/3"></div><div className="h-8 bg-slate-200 rounded w-3/4"></div><div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div></div>))}</div>
-                ) : (
+                {isLoading && data.length === 0 ? <div className="text-center text-slate-400 py-10">טוען...</div> : 
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />))}</div>
-                )}
-                {!isLoading && filteredData.length === 0 && <div className="text-center py-20 text-slate-400"><Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/><p className="text-xl font-medium">לא נמצאו תוצאות</p></div>}
+                }
              </div>
 
-             {selectedItem && <DetailedModalWrapper item={selectedItem} onClose={() => setSelectedItem(null)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} setUserEmail={setUserEmail} exampleData={exampleData} />}
-             {showAddModal && (
-                !userEmail ? 
-                <AuthModal email={userEmail} setEmail={setUserEmail} onLogin={()=>{localStorage.setItem('userEmail',userEmail)}} onClose={()=>setShowAddModal(false)} /> :
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={()=>setShowAddModal(false)}>
-                   <UnifiedForm title="הוספת נתונים חדשים" initialData={{}} exampleData={exampleData} onSubmit={handleAddSubmit} onClose={()=>setShowAddModal(false)} submitText="שמור למאגר" />
+             {/* Modals */}
+             {!userEmail && (showAddModal || showRequestModal || (selectedItem && selectedDomain)) && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in">
+                   <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
+                      <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600"><Icon name="Lock" size={32} /></div>
+                      <h3 className="text-xl font-bold mb-4">הזדהות משתמש</h3>
+                      <form onSubmit={(e)=>{e.preventDefault(); if(e.target[0].value){localStorage.setItem('userEmail', e.target[0].value); setUserEmail(e.target[0].value);}}}>
+                         <input type="email" name="email" autoComplete="email" placeholder="your@email.com" className="input-field mb-4 text-center" required autoFocus />
+                         <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">המשך</button>
+                      </form>
+                   </div>
                 </div>
              )}
-             {showRequestModal && <RequestSourceWizard onClose={() => setShowRequestModal(false)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} setUserEmail={setUserEmail} />}
-             {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg(null)} />}
+
+             {userEmail && selectedItem && <ViewEditModal item={selectedItem} onClose={()=>setSelectedItem(null)} onRefresh={fetchData} headers={headers} setToast={setToastMsg} userEmail={userEmail} fullData={data} />}
+             {userEmail && showAddModal && <AddDataWrapper onClose={()=>setShowAddModal(false)} onRefresh={fetchData} headers={headers} fullData={data} setToast={setToastMsg} userEmail={userEmail} />}
+             {userEmail && showRequestModal && <RequestWizard onClose={()=>setShowRequestModal(false)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} headers={headers} />}
+             {toastMsg && <Toast message={toastMsg} onClose={()=>setToastMsg(null)} />}
           </div>
         );
-      }
-
-      function DetailedModalWrapper({ item, onClose, onRefresh, setToast, userEmail, setUserEmail, exampleData }) {
-         const [mode, setMode] = useState('view');
-         const [isSubmitting, setIsSubmitting] = useState(false);
-         const [commentText, setCommentText] = useState("");
-         const isRequest = item.col0 === "בקשת מידע";
-         const commentsList = item.comments ? JSON.parse(item.comments) : [];
-         
-         const [editData, setEditData] = useState({...item});
-
-         const handleConvert = (formData) => {
-            setIsSubmitting(true);
-            const payload = { 
-               action: 'update', id: item.id, ...formData, 
-               col0: formData.col0 || "", 
-               col15: new Date().toLocaleDateString('he-IL'),
-               status: 'Closed' 
-            };
-            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-            .then(() => { setToast("עודכן בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 1000); });
-         };
-
-         const handleComment = () => {
-            if(!userEmail) return setMode('auth');
-            if(!commentText.trim()) return;
-            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addComment', id: item.id, userEmail, text: commentText }) })
-            .then(() => { setToast("תגובה נוספה"); setTimeout(() => { onRefresh(); onClose(); }, 500); });
-         };
-
-         const handleToggleFollow = () => {
-            if (!userEmail) { setMode('auth'); return; }
-            fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggleFollow', id: item.id, userEmail }) })
-            .then(() => { setToast("עודכן"); setTimeout(() => { onRefresh(); onClose(); }, 500); });
-         };
-
-         if (mode === 'auth') return <AuthModal email={userEmail} setEmail={setUserEmail} onLogin={()=>{localStorage.setItem('userEmail',userEmail); setMode('view')}} onClose={()=>setMode('view')} />;
-         
-         if (mode === 'edit') return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-               <UnifiedForm title={isRequest ? "הפיכה למקור" : "עריכה"} initialData={editData} exampleData={exampleData} onSubmit={handleConvert} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" />
-            </div>
-         );
-
-         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e=>e.stopPropagation()}>
-                  <div className={`p-6 border-b flex justify-between items-start sticky top-0 bg-white z-10 ${isRequest?'bg-orange-50':''}`}>
-                     <div>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${isRequest?'bg-orange-50 text-orange-600 border-orange-100':'bg-slate-100 text-slate-600'}`}>{isRequest?'בקשה פתוחה':item.col0}</span>
-                        <h2 className="text-2xl font-bold mt-2">{item.col1}</h2>
-                     </div>
-                     <div className="flex gap-2">
-                        <button onClick={()=>{if(!userEmail)setMode('auth'); else setMode('edit')}} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Edit3" size={18}/></button>
-                        <button onClick={handleToggleFollow} className="p-2 border rounded-full hover:bg-slate-50"><Icon name="Bell" size={18}/></button>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full"><Icon name="X" size={24}/></button>
-                     </div>
-                  </div>
-                  <div className="p-6 space-y-6">
-                     <div className="grid grid-cols-1 gap-4">
-                        {COLUMNS.map(col => {
-                           if(col.auto) return null; 
-                           const val = item[col.id];
-                           if (!val) return null;
-                           return <div key={col.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100"><div className="text-xs font-bold text-slate-400 uppercase mb-1">{col.label}</div><div className="break-words text-slate-800"><Linkify content={val}/></div></div>;
-                        })}
-                     </div>
-                     
-                     {isRequest && (
-                        <div className="bg-indigo-600 text-white p-6 rounded-2xl flex justify-between items-center shadow-lg">
-                           <div><div className="font-bold">מצאת את הנתונים?</div><div className="text-sm text-indigo-200">עדכן את הבקשה למקור ושתף עם כולם</div></div>
-                           <button onClick={()=>{
-                              if(!userEmail){setMode('auth'); return;}
-                              const newData = {...editData};
-                              newData.col0 = ""; 
-                              newData.status = 'Closed'; 
-                              newData.col15 = new Date().toLocaleDateString('he-IL');
-                              if (!newData.col3) newData.col3 = userEmail;
-                              setEditData(newData);
-                              setMode('edit');
-                           }} className="bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-50">עדכן למקור</button>
-                        </div>
-                     )}
-
-                     <div className="border-t pt-4">
-                        <h3 className="font-bold mb-4 flex gap-2"><Icon name="MessageCircle" size={18}/> תגובות</h3>
-                        <div className="space-y-3 mb-4 max-h-40 overflow-y-auto">{commentsList.map((c,i)=><div key={i} className="bg-slate-50 p-3 rounded-xl text-sm"><span className="font-bold block text-xs text-slate-400">{c.user.split('@')[0]}</span>{c.text}</div>)}</div>
-                        <div className="flex gap-2"><input className="input-field" placeholder="הגב..." value={commentText} onChange={e=>setCommentText(e.target.value)} /><button onClick={handleComment} className="bg-slate-900 text-white p-3 rounded-xl"><Icon name="Send" size={18}/></button></div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         );
       }
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -481,6 +407,5 @@
     </script>
   </body>
 </html>
-
 
 
