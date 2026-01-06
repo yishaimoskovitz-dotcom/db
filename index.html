@@ -14,15 +14,26 @@
     
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #1e293b; }
-      .bg-gradient-fixed { background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+      
+      .bg-gradient-fixed {
+        background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+      }
+
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
       .fade-in { animation: fadeIn 0.3s ease-out forwards; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      .input-field { @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm shadow-sm; }
-      .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
-      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 2000; animation: fadeIn 0.3s; }
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+      .input-field { @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm shadow-sm; }
+      .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
+      
+      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 2000; animation: fadeIn 0.3s; }
     </style>
   </head>
   <body>
@@ -32,23 +43,19 @@
     <script type="text/babel">
       const { useState, useEffect, useMemo, useRef } = React;
 
-      // --- הגדרות ---
+      // --- CONFIGURATION ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      
-      // *** הכתובת האחרונה ששלחת ***
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRSpRKoILrwYGqZDnCTjWhTeZhuLVQBWu4Cw1wvNFXvg2XPxntrZV_aNt5p2y321j-/exec"; 
-      
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmt0UQRaFXcJ1b72YVwm-O86bXIR_eL7tkXsUZyh5Z6xMeLqTtx5Pq8jUYwbqvVC09/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
-      // --- הגדרת העמודות והאפשרויות (Dropdowns) ---
-      // כאן אתה יכול לערוך את ה-options שיתאימו לשיטס שלך
+      // --- עמודות ---
       const COLUMNS = [
         { idx: 0, label: 'נושא', type: 'select', options: ['שיווק', 'כספים', 'משאבי אנוש', 'תפעול', 'טכנולוגיה', 'כללי'], required: true },
         { idx: 1, label: 'תת נושא', type: 'text', required: true },
         { idx: 2, label: 'אחראי', type: 'text' },
         { idx: 3, label: 'אימייל אחראי', type: 'email' },
-        { idx: 4, label: 'תיאור המקור', type: 'textarea' },
+        { idx: 4, label: 'תיאור מקור', type: 'textarea' },
         { idx: 5, label: 'שם המקור', type: 'text' },
         { idx: 6, label: 'טבלה מטויבת', type: 'text' },
         { idx: 7, label: 'מקור (קישור)', type: 'text' },
@@ -59,7 +66,7 @@
         { idx: 12, label: 'תדירות העברה', type: 'select', options: ['יומי', 'שבועי', 'חודשי', 'רבעוני', 'שנתי', 'בזמן אמת'] },
         { idx: 13, label: 'סוג המקור', type: 'select', options: ['פנימי', 'חיצוני', 'צד שלישי'] },
         { idx: 14, label: 'איכות המקור', type: 'select', options: ['גבוהה', 'בינונית', 'נמוכה - דורש טיוב'] },
-        { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true } // מוסתר, מתמלא אוטומטית
+        { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true }
       ];
 
       // --- UTILS ---
@@ -111,22 +118,27 @@
 
       // --- COMPONENTS ---
 
-      // כרטיס המידע
       const Card = ({ item, onClick, index }) => {
-        // עמודה 0 = נושא, עמודה 1 = תת נושא, עמודה 2 = אחראי
         const domain = item.values[0] || "כללי";
         const subTopic = item.values[1] || "ללא כותרת";
         const owner = item.values[2] || "לא צוין";
-        
         const isRequest = domain === "בקשת מידע";
+        
+        // --- תיקון הקריסה: בדיקה בטוחה של JSON ---
+        let comments = 0;
+        try {
+           comments = item.comments ? JSON.parse(item.comments).length : 0;
+        } catch (e) {
+           // אם יש שגיאה (למשל כתוב Open), נניח שיש 0 תגובות ולא נקרוס
+           comments = 0; 
+        }
+        
         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean).length : 0;
-        const comments = item.comments ? JSON.parse(item.comments).length : 0;
 
         let color = isRequest ? "border-orange-200 border-dashed bg-orange-50/30" : "border-slate-200/60 bg-white/80";
         let badge = isRequest ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600";
         let bar = isRequest ? "bg-orange-500" : "bg-indigo-500";
 
-        // צביעה לפי תחום
         if (!isRequest) {
            if(domain.includes("שיווק")) bar = "bg-blue-500";
            if(domain.includes("כספים")) bar = "bg-emerald-500";
@@ -146,16 +158,14 @@
               </div>
               <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3">{subTopic}</h3>
               <div className="mt-auto pt-4 border-t border-slate-200/50 flex items-center justify-between text-slate-500 text-sm">
-                 <div className="flex items-center gap-2"><div className={`p-1.5 rounded-full ${isRequest?'bg-orange-100 text-orange-600':'bg-slate-100 text-slate-500'}`}><Icon name={isRequest?"HelpCircle":"User"} size={14} /></div><span className="truncate max-w-[120px]">{owner}</span></div>
+                 <div className="flex items-center gap-2"><div className={`p-1.5 rounded-full ${isRequest?'bg-orange-100 text-orange-600':'bg-slate-100 text-slate-500'}`}><Icon name={isRequest?"CircleHelp":"User"} size={14} /></div><span className="truncate max-w-[120px]">{owner}</span></div>
               </div>
             </div>
           </div>
         );
       };
 
-      // טופס דינמי עם תמיכה ברשימות נגללות
       const DynamicForm = ({ title, formData, setFormData, onSubmit, onClose, submitText, isSubmitting, fullData }) => {
-         
          const handleChange = (idx, value) => {
             const newValues = [...formData];
             newValues[idx] = value;
@@ -163,7 +173,6 @@
          }
 
          const getPlaceholder = (idx) => {
-             // נסיון למצוא דוגמה משורות קיימות
              for (let i = 0; i < Math.min(fullData.length, 5); i++) {
                  if (fullData[i].values[idx]) return "למשל: " + fullData[i].values[idx];
              }
@@ -179,12 +188,10 @@
                <div className="p-6 overflow-y-auto custom-scrollbar">
                   <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-4">
                      {COLUMNS.map((col) => {
-                        if (col.auto) return null; // שדות אוטומטיים מוסתרים
-
+                        if (col.auto) return null; 
                         return (
                            <div key={col.idx}>
                               <label className="input-label">{col.label}</label>
-                              
                               {col.type === 'textarea' ? (
                                  <textarea className="input-field min-h-[80px] resize-none" placeholder={getPlaceholder(col.idx)} value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} />
                               ) : col.type === 'select' ? (
@@ -211,7 +218,6 @@
          );
       }
 
-      // מודל צפייה ועדכון
       const ViewEditModal = ({ item, onClose, onRefresh, setToast, userEmail, fullData }) => {
          const [mode, setMode] = useState('view');
          const [isSubmitting, setIsSubmitting] = useState(false);
@@ -219,18 +225,21 @@
          const [editData, setEditData] = useState([...item.values]); 
 
          const isRequest = item.values[0] === "בקשת מידע";
-         const commentsList = item.comments ? JSON.parse(item.comments) : [];
+         
+         // --- תיקון הקריסה גם כאן ---
+         let commentsList = [];
+         try {
+            commentsList = item.comments ? JSON.parse(item.comments) : [];
+         } catch (e) { commentsList = []; }
 
          const handleUpdate = async (isConvert = false) => {
             setIsSubmitting(true);
             const newDataArray = [...editData];
-            // מילוי תאריך עדכון (עמודה 15)
             newDataArray[15] = new Date().toLocaleDateString('he-IL');
             
-            // אם זו הפיכה למקור
             if(isConvert) {
-               newDataArray[0] = ""; // איפוס נושא כדי לחייב בחירה
-               if(!newDataArray[3]) newDataArray[3] = userEmail; // השלמת מייל אחראי
+               newDataArray[0] = ""; 
+               if(!newDataArray[3]) newDataArray[3] = userEmail; 
             }
 
             try {
@@ -302,14 +311,13 @@
             e.preventDefault(); setIsSubmitting(true);
             if(reqData.email) localStorage.setItem('userEmail', reqData.email);
             
-            // יצירת מערך 16 עמודות ומילוי
             const values = Array(16).fill("");
-            values[0] = "בקשת מידע"; // נושא
-            values[1] = reqData.desc; // תת נושא
-            values[2] = reqData.name; // אחראי
-            values[3] = reqData.email; // אימייל אחראי
-            values[5] = reqData.office; // שם המקור (למי פונים)
-            values[15] = new Date().toLocaleDateString('he-IL'); // תאריך
+            values[0] = "בקשת מידע"; 
+            values[1] = reqData.desc; 
+            values[2] = reqData.name; 
+            values[3] = reqData.email; 
+            values[5] = reqData.office; // שם המקור = למי פונים
+            values[15] = new Date().toLocaleDateString('he-IL');
 
             try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values }) }); 
             setToast("נפתח בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch(e) { alert("שגיאה"); } finally { setIsSubmitting(false); }
@@ -322,7 +330,7 @@
                   <div className="p-8 overflow-y-auto">
                      {step===1 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם בדקת בקטלוג?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border rounded-2xl font-bold">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg">בדקתי, אין</button></div></div>}
                      {step===2 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם חיפשת באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold shadow-lg">חיפשתי, אין</button></div></div>}
-                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4"><div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div><div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" required name="email" autoComplete="email" className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div><button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CheckCircle" size={20}/> פתח בקשה</>}</button></form></div>}
+                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4"><div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div><div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div><div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" required name="email" autoComplete="email" className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div><button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button></form></div>}
                   </div>
                </div>
             </div>
@@ -336,8 +344,8 @@
          const handleSubmit = async () => {
             setIsSubmitting(true);
             const newData = [...formData];
-            newData[15] = new Date().toLocaleDateString('he-IL'); // תאריך
-            if(!newData[3]) newData[3] = userEmail; // אימייל אחראי
+            newData[15] = new Date().toLocaleDateString('he-IL'); 
+            if(!newData[3]) newData[3] = userEmail; 
 
             try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values: newData }) }); 
             setToast("הנתונים נוספו!"); setTimeout(() => { onRefresh(); onClose(); }, 1500); } catch(e) { setIsSubmitting(false); alert("שגיאה"); }
@@ -367,12 +375,13 @@
             const rows = parseCSV(text);
             if (rows.length < 2) { setData([]); return; }
             
-            // מיפוי לפי 16 עמודות קבועות
             const newData = rows.slice(1).map((row, index) => {
                if (row.length < 2) return null;
+               // מפרידים נתונים ועמודות מערכת
                const values = [];
                for(let i=0; i<16; i++) values[i] = row[i] || "";
                
+               // תיקון: אם חסרות עמודות בשיטס, נשתמש בברירת מחדל
                const interestedUsers = row[16] || "";
                const comments = row[17] || "[]";
                const status = row[18] || "Open";
@@ -401,7 +410,7 @@
                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Analyst Data Hub</span>
                 </div>
                 <div className="flex gap-2">
-                   <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 hover:bg-indigo-50 flex items-center gap-2"><Icon name="HelpCircle" size={16} /> בקשה</button>
+                   <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 hover:bg-indigo-50 flex items-center gap-2"><Icon name="CircleHelp" size={16} /> בקשה</button>
                    <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-800 flex items-center gap-2"><Icon name="Plus" size={16} /> הוספה</button>
                    <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"><Icon name="RefreshCw" size={18} className={isLoading?"spin text-indigo-600":"text-slate-500"}/></button>
                 </div>
