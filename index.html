@@ -27,8 +27,8 @@
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       
       .input-group { @apply relative mb-4; }
-      .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400; }
-      .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
+      .input-field { @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 text-sm shadow-sm; }
+      .input-label { @apply block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide; }
       datalist { display: none; }
       
       /* Hashtag Chips */
@@ -48,11 +48,10 @@
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       
-      // *** הכתובת החדשה שלך עודכנה כאן ***
+      // הכתובת המעודכנת שלך
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2Y9fk6DHEU5QB9FTxS77y7bvIDHPncOFVVLCH1G-lryHKM27nSVjEUscBEHmtnU2F/exec"; 
       
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
-      const PARTNER_EMAIL = "partner@example.com";
 
       let GLOBAL_USER_EMAIL = "";
 
@@ -95,7 +94,6 @@
 
       const Linkify = ({ content }) => {
         if (typeof content !== 'string') return content;
-        // זיהוי hashtags וצביעתם
         const parts = content.split(/((?:https?:\/\/[^\s]+)|(?:#[\w\u0590-\u05FF]+))/g);
         
         return (
@@ -297,30 +295,119 @@
         );
       };
 
-      // --- Wizards ---
+      // --- Wizards משופר בעיצוב ---
       const RequestSourceWizard = ({ onClose, onRefresh }) => {
         const [step, setStep] = useState(1);
         const [isSubmitting, setIsSubmitting] = useState(false);
-        const [requestData, setRequestData] = useState({ requesterName: '', targetOffice: '', dataDesc: '', urgency: 'רגילה' });
+        const [requestData, setRequestData] = useState({ requesterName: '', requesterEmail: '', targetOffice: '', dataDesc: '', urgency: 'רגילה' });
+
         const handleSubmitRequest = async (e) => {
           e.preventDefault(); setIsSubmitting(true);
-          const payload = { action:'create', domain: "בקשת מידע", subTopic: requestData.dataDesc, owner: requestData.requesterName, sourceName: requestData.targetOffice, extraInfo: `דחיפות: ${requestData.urgency} | תאריך: ${new Date().toLocaleDateString()}` };
-          try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch (error) { alert("שגיאה"); } finally { setIsSubmitting(false); }
+          const payload = { 
+            action:'create', 
+            domain: "בקשת מידע", 
+            subTopic: requestData.dataDesc, 
+            owner: requestData.requesterName, 
+            sourceName: requestData.targetOffice, 
+            // המייל נשמר בתוך המידע הנוסף כדי שיהיה קל ליצור קשר
+            extraInfo: `דחיפות: ${requestData.urgency} | מייל המבקש: ${requestData.requesterEmail} | תאריך: ${new Date().toLocaleDateString()}` 
+          };
+          try { 
+            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); 
+            setTimeout(() => { onRefresh(); onClose(); }, 500); 
+          } catch (error) { alert("שגיאה"); } finally { setIsSubmitting(false); }
         };
+
         return (
-             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b flex justify-between"><h2 className="font-bold">בקשה חדשה</h2><button onClick={onClose}>X</button></div>
-              <div className="p-6">
-                 {step===1 && <div className="text-center"><p className="mb-4">האם בדקת בקטלוג?</p><button onClick={()=>setStep(2)} className="bg-indigo-600 text-white px-4 py-2 rounded">כן, לא קיים</button></div>}
-                 {step===2 && <div className="text-center"><p className="mb-4">האם זה פומבי?</p><button onClick={()=>setStep(3)} className="bg-indigo-600 text-white px-4 py-2 rounded">כן, לא מצאתי</button></div>}
-                 {step===3 && <div className="text-center"><p className="mb-4">שלח מייל למנהל.</p><a href={`mailto:${MANAGER_EMAIL}`} className="text-indigo-600 underline block mb-4">שלח מייל</a><button onClick={()=>setStep(4)} className="bg-slate-900 text-white px-4 py-2 rounded">התייעצתי, פותח בקשה</button></div>}
-                 {step===4 && <form onSubmit={handleSubmitRequest} className="space-y-3">
-                    <input placeholder="מה חסר?" className="input-field" value={requestData.dataDesc} onChange={e=>setRequestData({...requestData, dataDesc:e.target.value})} required/>
-                    <input placeholder="למי פונים?" className="input-field" value={requestData.targetOffice} onChange={e=>setRequestData({...requestData, targetOffice:e.target.value})} required/>
-                    <input placeholder="שמך" className="input-field" value={requestData.requesterName} onChange={e=>setRequestData({...requestData, requesterName:e.target.value})} required/>
-                    <button className="w-full bg-orange-500 text-white py-3 rounded font-bold">{isSubmitting?'שולח...':'פתח בקשה'}</button>
-                 </form>}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+              
+              <div className="bg-indigo-600 p-6 text-white text-center relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-full bg-white opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                 <h2 className="text-2xl font-bold relative z-10">
+                   {step === 1 ? 'בדיקת קטלוג' : step === 2 ? 'בדיקת רשת' : 'פתיחת בקשה'}
+                 </h2>
+                 <p className="text-indigo-200 text-sm relative z-10">צעד {step} מתוך 3</p>
+                 <button onClick={onClose} className="absolute top-4 left-4 p-1 hover:bg-white/20 rounded-full transition"><Icon name="X" size={20} /></button>
+              </div>
+
+              <div className="p-8 overflow-y-auto">
+                {step === 1 && (
+                  <div className="text-center space-y-6">
+                    <div className="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                      <Icon name="Library" size={48} className="text-indigo-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800">האם בדקת אם הנתונים שאתה מחפש נמצאים בקטלוג?</h3>
+                    <div className="flex gap-3 pt-4">
+                       <button onClick={onClose} className="flex-1 py-3 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all">בודק שוב...</button>
+                      <button onClick={() => setStep(2)} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">בדקתי, לא נמצא</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="text-center space-y-6">
+                    <div className="bg-cyan-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                      <Icon name="Globe" size={48} className="text-cyan-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800">האם המידע פומבי? ניסית לחפש את הנתונים באינטרנט?</h3>
+                    <div className="flex gap-3 pt-4">
+                       <button onClick={() => setStep(1)} className="px-4 py-3 text-slate-400 font-bold hover:text-slate-600">חזור</button>
+                      <button onClick={() => setStep(3)} className="flex-1 py-3 bg-cyan-600 text-white rounded-xl font-bold hover:bg-cyan-700 shadow-lg shadow-cyan-200 transition-all">חיפשתי, אין כלום</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-6">
+                    <div className="text-center">
+                       <p className="text-slate-600 font-medium mb-4">
+                         מעולה, שלח מייל לאיש הקשר מהמשרד בבקשה לנתונים שאתה מחפש ובמקביל פתח ממש כאן למטה פנייה חדשה ועדכן אותה בהתאם :)
+                       </p>
+                       
+                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
+                          <div className="text-sm font-bold text-slate-600">צריך להתייעץ לפני?</div>
+                          <a href={`mailto:${MANAGER_EMAIL}`} className="flex items-center gap-2 bg-white border border-indigo-100 text-indigo-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-50 transition shadow-sm">
+                             <Icon name="Mail" size={16} /> שלח לי מייל
+                          </a>
+                       </div>
+                    </div>
+
+                    <form onSubmit={handleSubmitRequest} className="space-y-4 bg-white rounded-xl">
+                       <h3 className="font-bold text-lg border-b pb-2 mb-4 text-slate-800">פרטי הבקשה</h3>
+                       
+                       <div className="input-group">
+                          <label className="input-label">אילו נתונים אתה מחפש?</label>
+                          <input required className="input-field" placeholder="למשל: נתוני תאונות דרכים 2024" 
+                            value={requestData.dataDesc} onChange={e => setRequestData({...requestData, dataDesc: e.target.value})} />
+                       </div>
+                       
+                       <div className="input-group">
+                          <label className="input-label">לאיזה משרד אתה פונה?</label>
+                          <input required className="input-field" placeholder="למשל: הלמ״ס" 
+                             value={requestData.targetOffice} onChange={e => setRequestData({...requestData, targetOffice: e.target.value})} />
+                       </div>
+
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="input-group">
+                             <label className="input-label">מה השם שלך?</label>
+                             <input required className="input-field" placeholder="שם מלא" 
+                               value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} />
+                          </div>
+                          <div className="input-group">
+                             <label className="input-label">מה המייל שלך?</label>
+                             <input type="email" required className="input-field" placeholder="your@email.com" 
+                               value={requestData.requesterEmail} onChange={e => setRequestData({...requestData, requesterEmail: e.target.value})} />
+                          </div>
+                       </div>
+
+                       <button type="submit" disabled={isSubmitting} className={`w-full bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>
+                         {isSubmitting ? 'שולח...' : <>פתח בקשה <Icon name="ArrowLeft" size={20}/></>}
+                       </button>
+                    </form>
+                  </div>
+                )}
+
               </div>
             </div></div>
         );
@@ -371,7 +458,6 @@
             
             const newData = rows.slice(1).map((row, index) => {
                if (row.length < 2) return null;
-               // תיקון מיפוי לפי עמודות P(15), Q(16), R(17) במערך 0-based
                return { 
                  id: index, 
                  domain: row[0] || "", 
@@ -457,3 +543,4 @@
     </script>
   </body>
 </html>
+
