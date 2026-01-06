@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyst Data Hub</title>
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -16,25 +17,21 @@
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; overflow-x: hidden; color: #1e293b; }
       
-      /* Smooth Animations */
       .fade-in { animation: fadeIn 0.3s ease-out forwards; }
       .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       
-      /* Subtle Background Gradient */
       .bg-gradient-fixed {
         background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
       }
 
-      /* Scrollbar */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
       ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-      /* Form Elements */
       .input-field { 
         @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none transition-all text-sm shadow-sm;
       }
@@ -45,7 +42,6 @@
         @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; 
       }
       
-      /* Toast Notification */
       .toast {
         position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
         background: #1e293b; color: white; padding: 12px 24px;
@@ -54,6 +50,8 @@
         animation: slideUpToast 0.3s ease-out;
       }
       @keyframes slideUpToast { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+      .spin { animation: spin 1s linear infinite; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
@@ -61,13 +59,15 @@
     <div id="root"></div>
 
     <script type="text/babel">
-      const { useState, useEffect, useMemo, useRef, useCallback } = React;
+      const { useState, useEffect, useMemo, useRef } = React;
 
       // --- הגדרות ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx2Y9fk6DHEU5QB9FTxS77y7bvIDHPncOFVVLCH1G-lryHKM27nSVjEUscBEHmtnU2F/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
+
+      let GLOBAL_USER_EMAIL = "";
 
       // --- Utilities ---
       const parseCSV = (str) => {
@@ -134,39 +134,123 @@
         );
       };
 
-      // --- Components ---
+      const getDomainColor = (domain) => {
+        if (!domain) return "bg-gray-100 text-gray-700 border-gray-200";
+        if (domain === "בקשת מידע") return "bg-orange-50 text-orange-700 border-orange-200 dashed-border";
+        const d = domain.toString().toLowerCase();
+        if (d.includes("שיווק")) return "bg-blue-50 text-blue-700 border-blue-200";
+        if (d.includes("כספים")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+        if (d.includes("מוצר")) return "bg-purple-50 text-purple-700 border-purple-200";
+        if (d.includes("משאבי אנוש")) return "bg-rose-50 text-rose-700 border-rose-200";
+        if (d.includes("טכנולוגיה")) return "bg-cyan-50 text-cyan-700 border-cyan-200";
+        return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      };
 
+      // --- Shared Dynamic Form ---
+      // This is used for both ADDING and EDITING to ensure consistency
+      const DynamicForm = ({ formData, setFormData, headers, fullData, onSubmit, isSubmitting, title, submitText, onClose }) => {
+         
+         const getPlaceholder = (headerIndex) => {
+           for (let i = 0; i < Math.min(fullData.length, 20); i++) {
+              const val = fullData[i].dataValues[headerIndex];
+              if (val && val.trim() !== "") return "למשל: " + val;
+           }
+           return "";
+         };
+
+         const isLongText = (header) => header.includes("מידע") || header.includes("Info") || header.includes("פירוט") || header.includes("תיאור");
+
+         return (
+            <div className="bg-white rounded-3xl w-full max-w-lg flex flex-col max-h-[90vh]" onClick={e=>e.stopPropagation()}>
+               <div className="p-6 border-b flex justify-between items-center bg-slate-50/80 rounded-t-3xl backdrop-blur-sm sticky top-0 z-10">
+                  <h2 className="font-bold text-xl text-slate-800">{title}</h2>
+                  <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition"><Icon name="X" size={20} className="text-slate-500"/></button>
+               </div>
+               
+               <div className="p-6 overflow-y-auto custom-scrollbar">
+                  <form onSubmit={onSubmit} className="space-y-5">
+                     {headers.map((header, idx) => {
+                        if (["status", "comments", "interestedusers"].includes(header.toLowerCase())) return null;
+
+                        return (
+                           <div key={idx}>
+                              <label className="input-label">{header}</label>
+                              {isLongText(header) ? (
+                                 <textarea 
+                                    className="input-field min-h-[100px] resize-none" 
+                                    placeholder={getPlaceholder(idx)}
+                                    value={formData[idx] || ''} 
+                                    onChange={e => setFormData({...formData, [idx]: e.target.value})} 
+                                 />
+                              ) : (
+                                 <input 
+                                    type="text" 
+                                    className="input-field" 
+                                    placeholder={getPlaceholder(idx)}
+                                    value={formData[idx] || ''} 
+                                    onChange={e => setFormData({...formData, [idx]: e.target.value})} 
+                                    required={idx === 0 || idx === 1}
+                                 />
+                              )}
+                           </div>
+                        )
+                     })}
+                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 shadow-lg mt-6 disabled:opacity-70 transition-all flex justify-center items-center gap-2 transform hover:-translate-y-0.5">
+                        {isSubmitting ? <Icon name="Loader2" className="spin" /> : <Icon name="Save" size={18} />}
+                        {isSubmitting ? 'שומר נתונים...' : submitText}
+                     </button>
+                  </form>
+               </div>
+            </div>
+         );
+      }
+
+      // --- Auth Modal ---
+      const AuthModal = ({ email, setEmail, onLogin, onClose }) => (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+            <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center" onClick={e=>e.stopPropagation()}>
+               <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                  <Icon name="Lock" size={32} />
+               </div>
+               <h3 className="text-xl font-bold mb-2 text-slate-800">הזדהות משתמש</h3>
+               <p className="text-slate-500 text-sm mb-6">כדי לערוך נתונים או לעקוב אחרי בקשות, אנא הכנס את כתובת המייל שלך.</p>
+               
+               <form onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+                  <input 
+                     type="email" name="email" autoComplete="email"
+                     placeholder="your@email.com" 
+                     className="input-field mb-4 text-center" 
+                     value={email} onChange={e => setEmail(e.target.value)} 
+                     required autoFocus
+                  />
+                  <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200">
+                     המשך למערכת
+                  </button>
+               </form>
+            </div>
+         </div>
+      );
+
+      // --- Card Component ---
       const Card = ({ item, onClick, index }) => {
         const isRequest = item.domain === "בקשת מידע";
         const isUrgent = isRequest && JSON.stringify(item.dataValues).includes("דחיפות: גבוהה");
         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean).length : 0;
         const comments = item.comments ? JSON.parse(item.comments).length : 0;
+        const colorClass = getDomainColor(item.domain);
         
-        let borderColor = "border-slate-200";
-        let bgColor = "bg-white/80";
-        let badgeColor = "bg-slate-100 text-slate-700 border-slate-200";
-        let barColor = "bg-indigo-500";
-
-        // Logic for styling based on domain
-        if (isRequest) {
-           borderColor = "border-orange-200 border-dashed";
-           bgColor = "bg-orange-50/40";
-           badgeColor = "bg-orange-100 text-orange-700 border-orange-200";
-           barColor = "bg-orange-500";
-        } else if (item.domain.includes("שיווק")) { barColor = "bg-blue-500";
-        } else if (item.domain.includes("כספים")) { barColor = "bg-emerald-500";
-        } else if (item.domain.includes("טכנו")) { barColor = "bg-cyan-500"; }
-
         return (
           <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
-               className={`group fade-in-up ${bgColor} backdrop-blur-sm rounded-2xl border ${borderColor} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative 
-               ${isUrgent ? 'ring-2 ring-red-400 ring-offset-2' : ''}`}>
+               className={`group fade-in-up bg-white/80 backdrop-blur-sm rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative 
+               ${isRequest ? 'border-orange-200 border-dashed bg-orange-50/30' : 'border-slate-200/60'}
+               ${isUrgent ? 'ring-2 ring-red-400 ring-offset-2' : ''}
+               `}>
             
-            <div className={`h-1.5 w-full ${barColor} opacity-80`}></div>
+            <div className={`h-1.5 w-full bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${colorClass.split(" ")[1]}`}></div>
             
             <div className="p-5 flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border tracking-wide uppercase ${badgeColor}`}>
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border tracking-wide uppercase ${colorClass}`}>
                   {isRequest ? "תהליך פנייה" : item.subTopic || item.domain}
                 </span>
                 <div className="flex gap-2 text-slate-400 text-[10px] items-center">
@@ -197,113 +281,22 @@
         );
       };
 
-      // --- Dynamic Form Component (Reusable for Add, Edit, Convert) ---
-      const DynamicForm = ({ formData, setFormData, headers, fullData, onSubmit, isSubmitting, title, submitText, onClose }) => {
-         
-         const getPlaceholder = (headerIndex) => {
-           // סריקה של עד 10 שורות ראשונות למציאת דוגמה
-           for (let i = 0; i < Math.min(fullData.length, 10); i++) {
-              const val = fullData[i].dataValues[headerIndex];
-              if (val && val.trim() !== "") return "למשל: " + val;
-           }
-           return "";
-         };
-
-         // פונקציה לזיהוי שדות ארוכים (כמו מידע נוסף)
-         const isLongText = (header) => header.includes("מידע") || header.includes("Info") || header.includes("פירוט") || header.includes("תיאור");
-
-         return (
-            <div className="bg-white rounded-3xl p-0 w-full max-w-lg flex flex-col max-h-[90vh]" onClick={e=>e.stopPropagation()}>
-               <div className="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl">
-                  <h2 className="font-bold text-xl text-slate-800">{title}</h2>
-                  <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition"><Icon name="X" size={20} className="text-slate-500"/></button>
-               </div>
-               
-               <div className="p-6 overflow-y-auto custom-scrollbar">
-                  <form onSubmit={onSubmit} className="space-y-5">
-                     {headers.map((header, idx) => {
-                        // דילוג על שדות מערכת אם הם מוצגים בטעות (למרות שהפילטר ב-App מטפל בזה)
-                        if (["status", "comments", "interestedusers"].includes(header.toLowerCase())) return null;
-
-                        return (
-                           <div key={idx}>
-                              <label className="input-label">{header}</label>
-                              {isLongText(header) ? (
-                                 <textarea 
-                                    className="input-field min-h-[100px] resize-none" 
-                                    placeholder={getPlaceholder(idx)}
-                                    value={formData[idx] || ''} 
-                                    onChange={e => setFormData({...formData, [idx]: e.target.value})} 
-                                 />
-                              ) : (
-                                 <input 
-                                    type="text" 
-                                    className="input-field" 
-                                    placeholder={getPlaceholder(idx)}
-                                    value={formData[idx] || ''} 
-                                    onChange={e => setFormData({...formData, [idx]: e.target.value})} 
-                                    // דרישת חובה לשדות הראשונים בדרך כלל
-                                    required={idx === 0 || idx === 1}
-                                 />
-                              )}
-                           </div>
-                        )
-                     })}
-                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 shadow-lg mt-4 disabled:opacity-70 transition-all flex justify-center items-center gap-2">
-                        {isSubmitting ? <Icon name="Loader2" className="spin" /> : <Icon name="Save" size={18} />}
-                        {isSubmitting ? 'שומר נתונים...' : submitText}
-                     </button>
-                  </form>
-               </div>
-            </div>
-         );
-      }
-
-      // --- Authentication Modal ---
-      const AuthModal = ({ email, setEmail, onLogin, onClose }) => (
-         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center" onClick={e=>e.stopPropagation()}>
-               <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600">
-                  <Icon name="Lock" size={32} />
-               </div>
-               <h3 className="text-xl font-bold mb-2 text-slate-800">הזדהות משתמש</h3>
-               <p className="text-slate-500 text-sm mb-6">כדי לערוך נתונים או לעקוב אחרי בקשות, אנא הכנס את כתובת המייל שלך.</p>
-               
-               <form onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
-                  <input 
-                     type="email" name="email" autoComplete="email"
-                     placeholder="your@email.com" 
-                     className="input-field mb-4 text-center" 
-                     value={email} onChange={e => setEmail(e.target.value)} 
-                     required autoFocus
-                  />
-                  <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-200">
-                     המשך למערכת
-                  </button>
-               </form>
-            </div>
-         </div>
-      );
-
-      // --- Main Modal (View / Edit / Comments) ---
+      // --- Detailed Modal (View/Edit) ---
       const DetailedModal = ({ item, onClose, onRefresh, fullData, headers, setToast, userEmail, setUserEmail }) => {
         const [mode, setMode] = useState('view');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [commentText, setCommentText] = useState("");
-        const [editData, setEditData] = useState({...item.dataValues}); 
+        const [editData, setEditData] = useState({...item.dataValues});
 
         const isRequest = item.domain === "בקשת מידע";
         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
         const isFollowing = userEmail && followers.includes(userEmail);
         const commentsList = item.comments ? JSON.parse(item.comments) : [];
 
-        // --- Handlers ---
         const handleSaveEdit = async (e) => {
           e.preventDefault();
           setIsSubmitting(true);
           try {
-            // הכנת הנתונים לפורמט שהסקריפט מצפה לו (מפתחות קבועים לצערי, בגלל מבנה הסקריפט הנוכחי)
-            // כדי להיות בטוחים שזה עובד דינמית, נשלח את האינדקסים
             const payload = {
                 action: 'update',
                 id: item.id,
@@ -312,7 +305,7 @@
                 owner: editData[2] || "",
                 sourceName: editData[4] || "",
                 extraInfo: editData[6] || "",
-                status: editData.status // לטיפול בסגירת בקשה
+                status: editData.status 
             };
             await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             setToast("הנתונים עודכנו בהצלחה!");
@@ -341,8 +334,7 @@
           } catch(e) { setIsSubmitting(false); }
         };
 
-        // --- Render States ---
-        
+        // Render Logic
         if (mode === 'auth') {
            return <AuthModal email={userEmail} setEmail={setUserEmail} onLogin={() => {
               if(userEmail.includes('@')) { localStorage.setItem('userEmail', userEmail); setMode('view'); }
@@ -351,7 +343,7 @@
 
         if (mode === 'edit') {
            return (
-             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
+             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
                 <DynamicForm 
                    title={isRequest ? "הפיכה למקור נתונים" : "עריכת נתונים"}
                    formData={editData} setFormData={setEditData} headers={headers} fullData={fullData}
@@ -369,7 +361,7 @@
               <div className={`p-6 border-b border-slate-100 flex justify-between items-start sticky top-0 z-10 bg-white/95 backdrop-blur`}>
                 <div>
                   <div className="flex gap-2 items-center mb-2">
-                     <span className="text-xs font-bold px-2.5 py-1 rounded-full border bg-slate-100 text-slate-600">{item.domain}</span>
+                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${getDomainColor(item.domain)}`}>{item.domain}</span>
                      {isRequest && <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full animate-pulse border border-orange-100">בקשה פתוחה</span>}
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900">{item.subTopic}</h2>
@@ -406,20 +398,15 @@
                       </div>
                       <button onClick={() => { 
                           if(!userEmail) { setMode('auth'); return; } 
-                          
-                          // אוטומציות חכמות למעבר מבקשה למקור
                           const newData = {...editData};
                           newData[0] = ""; // איפוס נושא
                           newData['status'] = 'Closed'; 
-
                           // תאריך אוטומטי
                           const dateIndex = headers.findIndex(h => h.includes("עדכון") || h.includes("תאריך"));
                           if (dateIndex !== -1) newData[dateIndex] = new Date().toLocaleDateString('he-IL');
-
                           // מילוי אחראי
                           const ownerIndex = headers.findIndex(h => h.includes("אחראי") || h.includes("מייל") || h.includes("Owner"));
                           if (ownerIndex !== -1) newData[ownerIndex] = userEmail;
-
                           setEditData(newData);
                           setMode('edit'); 
                       }} className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2">
@@ -468,16 +455,59 @@
         );
       };
 
-      // --- Wizard with Steps ---
+      // --- Add Data Modal Wrapper ---
+      const AddDataModal = ({ onClose, onRefresh, fullData, headers, setToast }) => {
+         const [formData, setFormData] = useState({});
+         const [isSubmitting, setIsSubmitting] = useState(false);
+         const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || "");
+
+         const handleSubmit = async (e) => {
+            e.preventDefault();
+            if (!userEmail) return alert("נדרש אימייל");
+            localStorage.setItem('userEmail', userEmail);
+            setIsSubmitting(true);
+            
+            // Auto fill date if exists
+            const newData = {...formData};
+            const dateIndex = headers.findIndex(h => h.includes("עדכון") || h.includes("תאריך"));
+            if (dateIndex !== -1) newData[dateIndex] = new Date().toLocaleDateString('he-IL');
+
+            const payload = { 
+               action: 'create', 
+               domain: newData[0], 
+               subTopic: newData[1],
+               owner: newData[2] || userEmail,
+               sourceName: newData[4],
+               extraInfo: newData[6] 
+            };
+            
+            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            setToast("הנתונים נוספו בהצלחה!");
+            setTimeout(() => { onRefresh(); onClose(); }, 1500);
+         }
+
+         if (!userEmail) return <AuthModal email={userEmail} setEmail={setUserEmail} onLogin={()=>{}} onClose={onClose} />;
+
+         return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+               <DynamicForm 
+                  title="הוספת נתונים חדשים"
+                  formData={formData} setFormData={setFormData} headers={headers} fullData={fullData}
+                  onSubmit={handleSubmit} isSubmitting={isSubmitting} submitText="שמור למאגר"
+                  onClose={onClose}
+               />
+            </div>
+         );
+      }
+
+      // --- Request Wizard ---
       const RequestSourceWizard = ({ onClose, onRefresh, setToast }) => {
         const [step, setStep] = useState(1);
         const [isSubmitting, setIsSubmitting] = useState(false);
-        const [requestData, setRequestData] = useState({ requesterName: '', requesterEmail: localStorage.getItem('userEmail') || '', targetOffice: '', dataDesc: '' });
+        const [requestData, setRequestData] = useState({ requesterName: '', requesterEmail: localStorage.getItem('userEmail') || '', targetOffice: '', dataDesc: '', urgency: 'רגילה' });
 
         const handleSubmitRequest = async (e) => {
           e.preventDefault(); setIsSubmitting(true);
-          
-          // שמירת המייל לפעם הבאה
           if (requestData.requesterEmail) localStorage.setItem('userEmail', requestData.requesterEmail);
 
           const payload = { 
@@ -486,7 +516,6 @@
             subTopic: requestData.dataDesc, 
             owner: requestData.requesterName, 
             sourceName: requestData.targetOffice, 
-            // המייל נשמר במידע נוסף או בעמודה רלוונטית אם יש
             extraInfo: `מייל המבקש: ${requestData.requesterEmail} | תאריך: ${new Date().toLocaleDateString()}` 
           };
           try { 
@@ -499,14 +528,10 @@
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-              
-              {/* Header with Pattern */}
               <div className="bg-indigo-600 p-8 text-white text-center relative overflow-hidden">
                  <div className="absolute top-0 left-0 w-full h-full bg-white opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                  <div className="relative z-10">
-                    <h2 className="text-2xl font-bold mb-1">
-                      {step === 1 ? 'בדיקת קטלוג' : step === 2 ? 'בדיקת רשת' : 'פתיחת בקשה'}
-                    </h2>
+                    <h2 className="text-2xl font-bold mb-1">{step === 1 ? 'בדיקת קטלוג' : step === 2 ? 'בדיקת רשת' : 'פתיחת בקשה'}</h2>
                     <div className="flex justify-center gap-2 mt-4">
                        {[1,2,3].map(s => <div key={s} className={`h-1.5 rounded-full transition-all duration-300 ${s === step ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}></div>)}
                     </div>
@@ -545,7 +570,7 @@
                   <div className="space-y-6 animate-[fadeIn_0.3s]">
                     <div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100">
                        <p className="text-slate-600 font-medium text-sm leading-relaxed mb-4">
-                         מעולה, שלח מייל לאיש הקשר במשרד ובמקביל פתח כאן פנייה חדשה כדי למנוע כפילויות.
+                         מעולה, שלח מייל לאיש הקשר במשרד ובמקביל פתח כאן פנייה חדשה.
                        </p>
                        <div className="flex items-center justify-center gap-2 text-indigo-600 bg-white p-2 rounded-xl border border-indigo-100 cursor-pointer hover:border-indigo-300 transition" 
                             onClick={() => { navigator.clipboard.writeText(MANAGER_EMAIL); alert("המייל הועתק!"); }}>
@@ -555,38 +580,16 @@
                     </div>
 
                     <form onSubmit={handleSubmitRequest} className="space-y-4">
-                       <div className="input-group">
-                          <label className="input-label">אילו נתונים אתה מחפש?</label>
-                          <input required className="input-field" placeholder="למשל: נתוני תאונות דרכים 2024" 
-                            value={requestData.dataDesc} onChange={e => setRequestData({...requestData, dataDesc: e.target.value})} />
-                       </div>
-                       
-                       <div className="input-group">
-                          <label className="input-label">לאיזה משרד אתה פונה?</label>
-                          <input required className="input-field" placeholder="למשל: הלמ״ס" 
-                             value={requestData.targetOffice} onChange={e => setRequestData({...requestData, targetOffice: e.target.value})} />
-                       </div>
-
+                       <div className="input-group"><label className="input-label">אילו נתונים אתה מחפש?</label><input required className="input-field" placeholder="למשל: נתוני תאונות דרכים 2024" value={requestData.dataDesc} onChange={e => setRequestData({...requestData, dataDesc: e.target.value})} /></div>
+                       <div className="input-group"><label className="input-label">לאיזה משרד אתה פונה?</label><input required className="input-field" placeholder="למשל: הלמ״ס" value={requestData.targetOffice} onChange={e => setRequestData({...requestData, targetOffice: e.target.value})} /></div>
                        <div className="grid grid-cols-2 gap-4">
-                          <div className="input-group">
-                             <label className="input-label">שם מלא</label>
-                             <input required className="input-field" placeholder="ישראל ישראלי" 
-                               value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} />
-                          </div>
-                          <div className="input-group">
-                             <label className="input-label">מייל</label>
-                             <input type="email" name="email" autoComplete="email" required className="input-field" placeholder="your@email.com" 
-                               value={requestData.requesterEmail} onChange={e => setRequestData({...requestData, requesterEmail: e.target.value})} />
-                          </div>
+                          <div className="input-group"><label className="input-label">שם מלא</label><input required className="input-field" placeholder="ישראל ישראלי" value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} /></div>
+                          <div className="input-group"><label className="input-label">מייל</label><input type="email" name="email" autoComplete="email" required className="input-field" placeholder="your@email.com" value={requestData.requesterEmail} onChange={e => setRequestData({...requestData, requesterEmail: e.target.value})} /></div>
                        </div>
-
-                       <button type="submit" disabled={isSubmitting} className={`w-full bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>
-                         {isSubmitting ? <Icon name="Loader2" className="spin"/> : <><Icon name="CheckCircle" size={20}/> פתח בקשה</>}
-                       </button>
+                       <button type="submit" disabled={isSubmitting} className={`w-full bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:bg-slate-800 mt-2 flex justify-center gap-2 ${isSubmitting ? 'opacity-70' : ''}`}>{isSubmitting ? <Icon name="Loader2" className="spin"/> : <><Icon name="CheckCircle" size={20}/> פתח בקשה</>}</button>
                     </form>
                   </div>
                 )}
-
               </div>
             </div></div>
         );
@@ -605,13 +608,9 @@
         const [toastMsg, setToastMsg] = useState(null);
         const [userEmail, setUserEmail] = useState("");
 
-        // Load email from local storage on mount
         useEffect(() => {
            const savedEmail = localStorage.getItem('userEmail');
-           if (savedEmail) {
-              setUserEmail(savedEmail);
-              GLOBAL_USER_EMAIL = savedEmail;
-           }
+           if (savedEmail) { setUserEmail(savedEmail); GLOBAL_USER_EMAIL = savedEmail; }
         }, []);
 
         const fetchData = async () => {
@@ -622,28 +621,21 @@
             const rows = parseCSV(text);
             if (rows.length < 2) { setData([]); return; }
             
-            // זיהוי כותרות
             const rawHeaders = rows[0];
-            const visibleHeaderCount = rawHeaders.length - 3; // Excluding system cols
+            const visibleHeaderCount = rawHeaders.length - 3; 
             const visibleHeaders = rawHeaders.slice(0, visibleHeaderCount).map(h=>h.trim());
             setHeaders(visibleHeaders);
 
             const newData = rows.slice(1).map((row, index) => {
                if (row.length < 2) return null;
                const dataValues = row.slice(0, visibleHeaderCount);
-               // System cols at the end
                const interestedUsers = row[rawHeaders.length - 3] || "";
                const comments = row[rawHeaders.length - 2] || "[]";
                const status = row[rawHeaders.length - 1] || "Open";
 
                return { 
-                 id: index, 
-                 dataValues, 
-                 // Mappings for Card UI (assuming order: 0=Domain, 1=SubTopic, 2=Owner, 4=Source)
-                 domain: row[0] || "", 
-                 subTopic: row[1] || "", 
-                 owner: row[2] || "", 
-                 sourceName: row[4] || "", 
+                 id: index, dataValues, 
+                 domain: row[0] || "", subTopic: row[1] || "", owner: row[2] || "", sourceName: row[4] || "", 
                  interestedUsers, comments, status 
                };
             }).filter(i => i);
@@ -695,111 +687,25 @@
 
                 {isLoading && data.length === 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {[1,2,3,4,5,6].map(i => (
-                         <div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3">
-                            <div className="h-6 bg-slate-100 rounded w-1/3"></div>
-                            <div className="h-8 bg-slate-200 rounded w-3/4"></div>
-                            <div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div>
-                         </div>
-                      ))}
+                      {[1,2,3,4,5,6].map(i => (<div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3"><div className="h-6 bg-slate-100 rounded w-1/3"></div><div className="h-8 bg-slate-200 rounded w-3/4"></div><div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div></div>))}
                    </div>
                 ) : (
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {filteredData.map((item, idx) => (
-                         <Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />
-                      ))}
+                      {filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />))}
                    </div>
                 )}
                 
                 {!isLoading && filteredData.length === 0 && (
-                   <div className="text-center py-20 text-slate-400">
-                      <Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/>
-                      <p className="text-xl font-medium">לא נמצאו תוצאות</p>
-                   </div>
+                   <div className="text-center py-20 text-slate-400"><Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/><p className="text-xl font-medium">לא נמצאו תוצאות</p></div>
                 )}
              </div>
 
-             {selectedItem && (
-               <DetailedModal 
-                  item={selectedItem} 
-                  onClose={() => setSelectedItem(null)} 
-                  onRefresh={fetchData} 
-                  fullData={data} 
-                  headers={headers} 
-                  setToast={setToastMsg}
-                  userEmail={userEmail}
-                  setUserEmail={setUserEmail}
-               />
-             )}
-             
-             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
-                   <DynamicForm 
-                      title="הוספת נתונים חדשים"
-                      formData={{}} // ריק בהתחלה
-                      setFormData={() => {}} // פונקציית דמה, המודל הזה קצת מורכב אז ניצור רכיב נפרד אם צריך, אבל נשתמש ב-inline לבינתיים
-                      // במקום זה נשתמש בלוגיקה הפנימית של DynamicForm ע"י יצירת Wrapper קטן
-                      headers={headers} 
-                      fullData={data}
-                      onSubmit={async (e) => {
-                         e.preventDefault();
-                         // איסוף הנתונים מהטופס (לוגיקה פנימית של הטופס)
-                         // כאן אנחנו צריכים שהטופס ינהל את ה-state שלו בעצמו או שנעביר לו
-                      }} 
-                      // הערה: כדי לא לשבור את הקוד, נשתמש ב-AddDataModal הנפרד למטה
-                      onClose={() => setShowAddModal(false)}
-                   />
-                   {/* חזרה לשימוש ברכיב המקורי שיצרתי קודם אבל עם העיצוב החדש */}
-                   <AddDataModalReal onClose={() => setShowAddModal(false)} onRefresh={fetchData} fullData={data} headers={headers} setToast={setToastMsg} />
-                </div>
-             )}
-
+             {selectedItem && <DetailedModal item={selectedItem} onClose={() => setSelectedItem(null)} onRefresh={fetchData} fullData={data} headers={headers} setToast={setToastMsg} userEmail={userEmail} setUserEmail={setUserEmail} />}
+             {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} fullData={data} headers={headers} setToast={setToastMsg} />}
              {showRequestModal && <RequestSourceWizard onClose={() => setShowRequestModal(false)} onRefresh={fetchData} setToast={setToastMsg} />}
-             
              {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg(null)} />}
           </div>
         );
-      }
-
-      // --- Add Modal Wrapper (Fixing the inline issue above) ---
-      const AddDataModalReal = ({ onClose, onRefresh, fullData, headers, setToast }) => {
-         const [formData, setFormData] = useState({});
-         const [isSubmitting, setIsSubmitting] = useState(false);
-         const [userEmail, setUserEmail] = useState(localStorage.getItem('userEmail') || "");
-
-         const handleSubmit = async (e) => {
-            e.preventDefault();
-            if (!userEmail) return alert("נדרש אימייל");
-            localStorage.setItem('userEmail', userEmail);
-            setIsSubmitting(true);
-            
-            // בניית מערך לפי סדר העמודות
-            const payload = { 
-               action: 'create', 
-               domain: formData[0], 
-               subTopic: formData[1],
-               owner: formData[2] || userEmail,
-               sourceName: formData[4],
-               extraInfo: formData[6] 
-            };
-            
-            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            setToast("הנתונים נוספו בהצלחה!");
-            setTimeout(() => { onRefresh(); onClose(); }, 1500);
-         }
-
-         if (!userEmail) return <AuthModal email={userEmail} setEmail={setUserEmail} onLogin={()=>{}} onClose={onClose} />;
-
-         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
-               <DynamicForm 
-                  title="הוספת נתונים חדשים"
-                  formData={formData} setFormData={setFormData} headers={headers} fullData={fullData}
-                  onSubmit={handleSubmit} isSubmitting={isSubmitting} submitText="שמור למאגר"
-                  onClose={onClose}
-               />
-            </div>
-         );
       }
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -807,4 +713,5 @@
     </script>
   </body>
 </html>
+
 
