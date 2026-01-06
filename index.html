@@ -43,11 +43,12 @@
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       
-      // *** הקפד להכניס את הכתובת שלך כאן ***
-      const APPS_SCRIPT_URL = "INSERT_YOUR_WEB_APP_URL_HERE"; 
+      // *** הכתובת שהכנסת עודכנה כאן ***
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLFBj8QnqKH8B_-_dM0EkCQbTidGJ3Mghoy1HlKVFA-rJgneSXshGNX0ok3qESe7Mb/exec"; 
       
-      const MANAGER_EMAIL = "manager@example.com";
-      const PARTNER_EMAIL = "partner@example.com";
+      // *** המייל שלך עודכן כאן ***
+      const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
+      const PARTNER_EMAIL = "partner@example.com"; // תוכל לשנות למייל של השותף אם יש
 
       // --- פונקציות עזר ---
       const parseCSV = (str) => {
@@ -96,9 +97,7 @@
 
       const getDomainColor = (domain) => {
         if (!domain) return "bg-gray-100 text-gray-700 border-gray-200";
-        // צבע מיוחד לבקשות מידע
         if (domain === "בקשת מידע") return "bg-orange-50 text-orange-700 border-orange-200 dashed-border";
-        
         const d = domain.toString().toLowerCase();
         if (d.includes("שיווק") || d.includes("marketing")) return "bg-blue-50 text-blue-700 border-blue-200";
         if (d.includes("כספים") || d.includes("finance")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -108,20 +107,30 @@
         return "bg-indigo-50 text-indigo-700 border-indigo-200";
       };
 
-      // --- קומפוננטת כרטיס (מעודכנת להצגת בקשות) ---
+      // --- קומפוננטת כרטיס ---
       const Card = ({ item, onClick, index }) => {
         const isRequest = item.domain === "בקשת מידע";
+        // בדיקה האם הבקשה דחופה (נשמר ב-Extra Info או בשם)
+        const isUrgent = isRequest && item.extraInfo && item.extraInfo.includes("דחיפות: גבוהה");
+        
         const colorClass = getDomainColor(item.domain);
         
         return (
-          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} className={`group fade-in-up bg-white/80 backdrop-blur-sm rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${isRequest ? 'border-orange-200 border-dashed bg-orange-50/30' : 'border-slate-200/60'}`}>
+          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
+               className={`group fade-in-up bg-white/80 backdrop-blur-sm rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative 
+               ${isRequest ? 'border-orange-200 border-dashed bg-orange-50/30' : 'border-slate-200/60'}
+               ${isUrgent ? 'ring-2 ring-red-400 ring-offset-2' : ''}
+               `}>
+            
             <div className={`h-1.5 w-full bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${colorClass.split(" ")[1]}`}></div>
+            
             <div className="p-5 flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[11px] font-bold px-3 py-1 rounded-full border tracking-wide uppercase ${colorClass}`}>
                   {isRequest ? "תהליך פנייה" : item.subTopic}
                 </span>
-                {isRequest && <Icon name="Clock" size={16} className="text-orange-400" />}
+                {isRequest && !isUrgent && <Icon name="Clock" size={16} className="text-orange-400" />}
+                {isUrgent && <div className="flex items-center text-red-600 animate-pulse"><Icon name="Flame" size={16} /><span className="text-[10px] font-bold mr-1">דחוף</span></div>}
               </div>
               
               <h3 className="text-xl font-bold text-slate-800 leading-tight mb-3 group-hover:text-indigo-600 transition-colors">
@@ -146,8 +155,8 @@
                 )}
               </div>
             </div>
-            {/* כפתור הובר */}
-            <div className={`absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0`}>
+            
+             <div className={`absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0`}>
                 <div className={`${isRequest ? 'bg-orange-500' : 'bg-indigo-600'} p-2 rounded-full text-white shadow-lg`}>
                   <Icon name={isRequest ? "Eye" : "ArrowLeft"} size={16} />
                 </div>
@@ -185,31 +194,28 @@
         );
       };
 
-      // --- מודל אשף בקשת מקור חדש (Wizard) - עם טופס בסוף ---
+      // --- אשף בקשת מקור חדש (משודרג עם דחיפות) ---
       const RequestSourceWizard = ({ onClose, onRefresh }) => {
-        const [step, setStep] = useState(1); // 1=Internal, 2=Public, 3=Consult, 4=Log Request
+        const [step, setStep] = useState(1);
         const [isSubmitting, setIsSubmitting] = useState(false);
-        const [requestData, setRequestData] = useState({ requesterName: '', targetOffice: '', dataDesc: '' });
+        const [requestData, setRequestData] = useState({ requesterName: '', targetOffice: '', dataDesc: '', urgency: 'רגילה' });
 
         const handleSubmitRequest = async (e) => {
           e.preventDefault();
           setIsSubmitting(true);
           
-          if (APPS_SCRIPT_URL === "INSERT_YOUR_WEB_APP_URL_HERE") {
-             alert("שגיאה: לא הוגדר כתובת סקריפט."); setIsSubmitting(false); return;
+          if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("INSERT_YOUR")) {
+             alert("שגיאה: כתובת הסקריפט אינה תקינה. אנא בדוק את הקוד."); 
+             setIsSubmitting(false); 
+             return;
           }
 
-          // מיפוי נתוני הבקשה לפורמט של השיטס
-          // Domain = "בקשת מידע"
-          // SubTopic = מה שמחפשים
-          // Owner = מי שמבקש
-          // SourceName = למי פנו
           const payload = {
             domain: "בקשת מידע", 
             subTopic: requestData.dataDesc,
             owner: requestData.requesterName,
             sourceName: requestData.targetOffice,
-            extraInfo: `תועד בתאריך ${new Date().toLocaleDateString()}`
+            extraInfo: `דחיפות: ${requestData.urgency} | תועד בתאריך ${new Date().toLocaleDateString()}`
           };
 
           try {
@@ -219,8 +225,7 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...payload, updatedBy: "System Wizard" })
             });
-            // סיום מוצלח
-            alert("הבקשה תועדה בהצלחה! היא תופיע כעת בקטלוג כבקשה פתוחה.");
+            alert("הבקשה תועדה בהצלחה!");
             setTimeout(() => { onRefresh(); onClose(); }, 500);
           } catch (error) {
             console.error(error);
@@ -242,7 +247,6 @@
               </div>
 
               <div className="p-8">
-                {/* שלב 1: בדיקה פנימית */}
                 {step === 1 && (
                   <div className="text-center space-y-6">
                     <div className="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-indigo-600 mb-4"><Icon name="Search" size={36} /></div>
@@ -255,7 +259,6 @@
                   </div>
                 )}
 
-                {/* שלב 2: בדיקה פומבית */}
                 {step === 2 && (
                   <div className="text-center space-y-6">
                     <div className="bg-cyan-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-cyan-600 mb-4"><Icon name="Globe" size={36} /></div>
@@ -268,7 +271,6 @@
                   </div>
                 )}
 
-                {/* שלב 3: התייעצות */}
                 {step === 3 && (
                   <div className="text-center space-y-6">
                     <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-4"><Icon name="Users" size={36} /></div>
@@ -284,29 +286,36 @@
                   </div>
                 )}
 
-                {/* שלב 4: טופס תיעוד פנייה */}
                 {step === 4 && (
-                  <form onSubmit={handleSubmitRequest} className="space-y-4">
+                  <form onSubmit={handleSubmitRequest} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div className="text-center mb-4">
                        <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-orange-600 mb-2"><Icon name="FileText" size={28} /></div>
                        <h3 className="text-lg font-bold text-slate-800">תיעוד הפנייה למאגר</h3>
-                       <p className="text-sm text-slate-500">חשוב לתעד כדי שעמיתים לא יבצעו פנייה כפולה.</p>
                     </div>
                     
                     <div className="input-group">
                       <label className="input-label">מהם הנתונים החסרים?</label>
-                      <input required className="input-field" placeholder="למשל: נתוני תחלואה לפי ערים 2024" 
+                      <input required className="input-field" placeholder="למשל: נתוני תחלואה 2024" 
                         value={requestData.dataDesc} onChange={e => setRequestData({...requestData, dataDesc: e.target.value})} />
                     </div>
                     <div className="input-group">
                        <label className="input-label">למי בכוונתך לפנות?</label>
-                       <input required className="input-field" placeholder="למשל: למ״ס / משרד הבריאות" 
+                       <input required className="input-field" placeholder="שם המשרד/גוף" 
                          value={requestData.targetOffice} onChange={e => setRequestData({...requestData, targetOffice: e.target.value})} />
                     </div>
-                    <div className="input-group">
-                       <label className="input-label">מי המבקש (שמך)?</label>
-                       <input required className="input-field" placeholder="ישראל ישראלי" 
-                         value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="input-group">
+                           <label className="input-label">מי המבקש?</label>
+                           <input required className="input-field" placeholder="שמך המלא" 
+                             value={requestData.requesterName} onChange={e => setRequestData({...requestData, requesterName: e.target.value})} />
+                        </div>
+                        <div className="input-group">
+                           <label className="input-label">רמת דחיפות</label>
+                           <select className="input-field" value={requestData.urgency} onChange={e => setRequestData({...requestData, urgency: e.target.value})}>
+                               <option value="רגילה">רגילה</option>
+                               <option value="גבוהה">גבוהה (דחוף!)</option>
+                           </select>
+                        </div>
                     </div>
 
                     <button type="submit" disabled={isSubmitting} className={`w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg ${isSubmitting ? 'opacity-70' : ''}`}>
@@ -321,19 +330,19 @@
         );
       };
 
-      // --- מודל הוספה רגיל (נשאר ללא שינוי מהותי) ---
+      // --- מודל הוספה רגיל (קיים) ---
       const AddDataModal = ({ onClose, onRefresh, existingData }) => {
         const [step, setStep] = useState('login'); 
         const [email, setEmail] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [formData, setFormData] = useState({ domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: '' });
-        const uniqueDomains = useMemo(() => [...new Set(existingData.map(i => i.domain).filter(d => d && d !== "בקשת מידע"))], [existingData]); // סינון בקשות מרשימת הדומיינים
+        const uniqueDomains = useMemo(() => [...new Set(existingData.map(i => i.domain).filter(d => d && d !== "בקשת מידע"))], [existingData]);
         const uniqueOwners = useMemo(() => [...new Set(existingData.map(i => i.owner).filter(Boolean))], [existingData]);
         const uniqueSources = useMemo(() => [...new Set(existingData.map(i => i.sourceName).filter(Boolean))], [existingData]);
         const handleLogin = (e) => { e.preventDefault(); if(email.length > 3 && email.includes('@')) { setStep('form'); } else { alert('מייל לא תקין'); } };
         const handleSubmit = async (e) => {
           e.preventDefault(); setIsSubmitting(true);
-          if (APPS_SCRIPT_URL === "INSERT_YOUR_WEB_APP_URL_HERE") { alert("שגיאה בסקריפט"); setIsSubmitting(false); return; }
+          if (APPS_SCRIPT_URL.includes("INSERT_YOUR")) { alert("שגיאה בסקריפט"); setIsSubmitting(false); return; }
           try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...formData, updatedBy: email }) }); setStep('success'); setTimeout(() => { onRefresh(); }, 2000); } catch (error) { alert("שגיאה"); } finally { setIsSubmitting(false); }
         };
         return (
@@ -390,7 +399,6 @@
             return Object.values(item).some(val => String(val).toLowerCase().includes(term)) && (selectedDomain ? item.domain === selectedDomain : true);
         }), [data, searchTerm, selectedDomain]);
         
-        // כאן אנחנו מחריגים את "בקשת מידע" מרשימת הפילטרים הרגילה כדי לא לבלבל, אבל אפשר להשאיר אם רוצים
         const domains = [...new Set(data.map(i => i.domain).filter(d => d && d !== "בקשת מידע"))].filter(Boolean);
 
         return (
@@ -406,16 +414,10 @@
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Search" size={18} /></div>
                 </div>
                 <div className="flex items-center gap-2">
-                   
-                   {/* כפתור בקשה */}
-                   <button 
-                    onClick={() => setShowRequestModal(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-all"
-                  >
+                   <button onClick={() => setShowRequestModal(true)} className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-all">
                     <Icon name="HelpCircle" size={16} />
                     <span className="hidden xl:inline">בקשה למקור חדש</span>
                   </button>
-
                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
                     <Icon name="PlusCircle" size={16} />
                     <span className="hidden lg:inline">הוסף נתונים</span>
@@ -434,7 +436,6 @@
                 </div>
                 <div className="flex flex-wrap gap-2 mb-8">
                     <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${!selectedDomain ? 'bg-slate-800 text-white shadow-lg shadow-slate-500/20 scale-105' : 'bg-white/60 text-slate-600 hover:bg-white'}`}>הכל</button>
-                    {/* כפתור פילטר מיוחד לבקשות פתוחות */}
                     <button onClick={() => setSelectedDomain("בקשת מידע")} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedDomain === "בקשת מידע" ? 'bg-orange-500 text-white shadow-lg scale-105' : 'bg-white/60 text-orange-600 hover:bg-orange-50 border border-orange-100'}`}>בקשות פתוחות</button>
                     {domains.map(d => (<button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedDomain === d ? 'bg-slate-800 text-white shadow-lg shadow-slate-500/20 scale-105' : 'bg-white/60 text-slate-600 hover:bg-white'}`}>{d}</button>))}
                 </div>
@@ -457,4 +458,3 @@
     </script>
   </body>
 </html>
-
