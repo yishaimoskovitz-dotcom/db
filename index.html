@@ -26,12 +26,9 @@
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       
-      /* עיצוב שדות קלט מודרני */
       .input-group { @apply relative mb-4; }
       .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400; }
       .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide; }
-      
-      /* עיצוב לדרופ-דאון של הדפדפן */
       datalist { display: none; }
     </style>
   </head>
@@ -45,9 +42,11 @@
       // --- הגדרות ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+      const APPS_SCRIPT_URL = "INSERT_YOUR_WEB_APP_URL_HERE"; 
       
-      // *** שים את הכתובת של ה-Google Apps Script שלך כאן ***
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWvcYe6yyVG3U6rOPsHA3qyQecCAuCoOrZU8ipr6lyZRzQtHyxaMF5_3yY9p08AJeJ/exec"; 
+      // *** הגדרת המיילים להתייעצות ***
+      const MANAGER_EMAIL = "manager@example.com";
+      const PARTNER_EMAIL = "partner@example.com";
 
       // --- פונקציות עזר ---
       const parseCSV = (str) => {
@@ -154,7 +153,104 @@
         );
       };
 
-      // --- מודל הוספה חכם ודינמי ---
+      // --- מודל אשף בקשת מקור חדש (Wizard) ---
+      const RequestSourceWizard = ({ onClose }) => {
+        const [step, setStep] = useState(1); // 1=Check Internal, 2=Check Public, 3=Consult/Action
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col" onClick={e => e.stopPropagation()}>
+              
+              <div className="p-6 border-b border-slate-100 bg-indigo-50/50 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-800">
+                  {step === 1 ? 'רגע לפני שפונים החוצה...' : step === 2 ? 'בדיקת מקורות פומביים' : 'התייעצות ובקשה'}
+                </h2>
+                <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"><Icon name="X" size={20} /></button>
+              </div>
+
+              <div className="p-8">
+                {/* שלב 1: בדיקה פנימית */}
+                {step === 1 && (
+                  <div className="text-center space-y-6">
+                    <div className="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-indigo-600 mb-4">
+                      <Icon name="Search" size={36} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800">האם חיפשת בקטלוג שלנו?</h3>
+                    <p className="text-slate-600 text-lg">
+                      הרבה פעמים הנתונים כבר קיימים בארגון אצל אנליסט אחר. <br/>
+                      חסוך לעצמך זמן יקר וודא שהם לא כאן.
+                    </p>
+                    <div className="flex gap-3 pt-4">
+                       <button onClick={onClose} className="flex-1 py-3 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50">
+                        אלך לחפש עכשיו
+                      </button>
+                      <button onClick={() => setStep(2)} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+                        בדקתי, הנתונים לא כאן
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* שלב 2: בדיקה פומבית */}
+                {step === 2 && (
+                  <div className="text-center space-y-6">
+                    <div className="bg-cyan-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-cyan-600 mb-4">
+                      <Icon name="Globe" size={36} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800">האם הנתונים פומביים?</h3>
+                    <p className="text-slate-600 text-lg">
+                      לפני שמבקשים ממשרד אחר, שווה לבדוק אם המידע פורסם כבר באינטרנט, בדוחות שנתיים או במאגרי מידע ממשלתיים.
+                    </p>
+                    <div className="flex gap-3 pt-4">
+                       <button onClick={() => setStep(1)} className="px-4 py-3 text-slate-400 font-bold hover:text-slate-600">
+                        חזור
+                      </button>
+                      <button onClick={() => setStep(3)} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+                        בדקתי, לא מצאתי
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* שלב 3: התייעצות וסיום */}
+                {step === 3 && (
+                  <div className="text-center space-y-6">
+                    <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-4">
+                      <Icon name="Users" size={36} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800">אנחנו כאן לעזור!</h3>
+                    <p className="text-slate-600">
+                      לפני הפנייה הרשמית, שלח לנו מייל. אולי אנחנו מכירים דרך קצרה יותר להשיג את המידע או שיש לנו כבר משהו דומה בעבודה.
+                    </p>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right mx-2">
+                      <div className="text-xs font-bold text-slate-500 uppercase mb-2">מיילים להתייעצות:</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon name="Mail" size={16} className="text-indigo-500" />
+                        <a href={`mailto:${MANAGER_EMAIL}`} className="text-slate-800 font-medium hover:underline">{MANAGER_EMAIL}</a>
+                      </div>
+                       <div className="flex items-center gap-2">
+                        <Icon name="Mail" size={16} className="text-indigo-500" />
+                        <a href={`mailto:${PARTNER_EMAIL}`} className="text-slate-800 font-medium hover:underline">{PARTNER_EMAIL}</a>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <p className="text-sm text-slate-500 mb-3">אם בכל זאת החלטת לפנות למשרד החיצוני, בהצלחה!</p>
+                      <button onClick={onClose} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 shadow-lg">
+                        הבנתי, תודה (סגור)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // --- מודל הוספה חכם ודינמי (הרגיל) ---
       const AddDataModal = ({ onClose, onRefresh, existingData }) => {
         const [step, setStep] = useState('login'); 
         const [email, setEmail] = useState('');
@@ -163,8 +259,6 @@
           domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: ''
         });
 
-        // חישוב הרשימות הקיימות מתוך הדאטה בזמן אמת
-        // המערכת לוקחת את כל הערכים הקיימים, מסירה כפילויות ויוצרת רשימה
         const uniqueDomains = useMemo(() => [...new Set(existingData.map(i => i.domain).filter(Boolean))], [existingData]);
         const uniqueOwners = useMemo(() => [...new Set(existingData.map(i => i.owner).filter(Boolean))], [existingData]);
         const uniqueSources = useMemo(() => [...new Set(existingData.map(i => i.sourceName).filter(Boolean))], [existingData]);
@@ -196,7 +290,7 @@
               body: JSON.stringify({ ...formData, updatedBy: email })
             });
             setStep('success');
-            setTimeout(() => { onRefresh(); }, 2000); // לאחר רענון, הערך החדש יהיה חלק מהרשימה לכולם
+            setTimeout(() => { onRefresh(); }, 2000);
           } catch (error) {
             console.error(error);
             alert("אירעה שגיאה בשמירה.");
@@ -208,119 +302,57 @@
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col" onClick={e => e.stopPropagation()}>
-              
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-slate-800">
-                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת נתונים'}
-                </h2>
+                <h2 className="text-xl font-bold text-slate-800">{step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת נתונים'}</h2>
                 <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"><Icon name="X" size={20} /></button>
               </div>
-
               <div className="p-6">
                 {step === 'login' && (
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="text-center mb-6">
-                      <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600">
-                        <Icon name="Lock" size={32} />
-                      </div>
+                      <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600"><Icon name="Lock" size={32} /></div>
                       <p className="text-slate-600">הגישה לעריכה מוגבלת למורשים בלבד.</p>
                     </div>
-                    <div>
-                      <label className="input-label">אימייל להזדהות</label>
-                      <input type="email" required className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
+                    <div><label className="input-label">אימייל להזדהות</label><input type="email" required className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
                     <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200">המשך לטופס</button>
                   </form>
                 )}
-
                 {step === 'form' && (
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                    
-                    {/* Domain - בחירה מרשימה קיימת או הקלדה חדשה */}
                     <div className="input-group">
                       <label className="input-label">נושא (Domain)</label>
-                      <input 
-                        list="domains-list" 
-                        required 
-                        className="input-field" 
-                        placeholder="בחר מהרשימה או הקלד חדש..." 
-                        value={formData.domain} 
-                        onChange={e => setFormData({...formData, domain: e.target.value})} 
-                      />
-                      <datalist id="domains-list">
-                        {uniqueDomains.map(d => <option key={d} value={d} />)}
-                      </datalist>
-                      <p className="text-[10px] text-slate-400 mt-1">עדכון כאן יוסיף את האופציה לרשימה הכללית.</p>
+                      <input list="domains-list" required className="input-field" placeholder="בחר מהרשימה או הקלד חדש..." value={formData.domain} onChange={e => setFormData({...formData, domain: e.target.value})} />
+                      <datalist id="domains-list">{uniqueDomains.map(d => <option key={d} value={d} />)}</datalist>
                     </div>
-
-                    {/* SubTopic - שדה טקסט כי זה משתנה (כותרת התגית הקטנה) */}
                     <div className="input-group">
                       <label className="input-label">תת-נושא / שם הדוח (SubTopic)</label>
-                      <input 
-                        type="text" 
-                        required 
-                        className="input-field" 
-                        placeholder="למשל: דוח ביצועים חודשי" 
-                        value={formData.subTopic} 
-                        onChange={e => setFormData({...formData, subTopic: e.target.value})} 
-                      />
+                      <input type="text" required className="input-field" placeholder="למשל: דוח ביצועים חודשי" value={formData.subTopic} onChange={e => setFormData({...formData, subTopic: e.target.value})} />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
-                      {/* Owner - בחירה מרשימה קיימת או חדש */}
                       <div className="input-group">
                         <label className="input-label">אחראי (Owner)</label>
-                        <input 
-                          list="owners-list"
-                          className="input-field" 
-                          placeholder="שם האחראי" 
-                          value={formData.owner} 
-                          onChange={e => setFormData({...formData, owner: e.target.value})} 
-                        />
-                         <datalist id="owners-list">
-                          {uniqueOwners.map(o => <option key={o} value={o} />)}
-                        </datalist>
+                        <input list="owners-list" className="input-field" placeholder="שם האחראי" value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})} />
+                         <datalist id="owners-list">{uniqueOwners.map(o => <option key={o} value={o} />)}</datalist>
                       </div>
-
-                      {/* Source - בחירה מרשימה קיימת או חדש */}
                       <div className="input-group">
                         <label className="input-label">מקור (Source)</label>
-                        <input 
-                          list="sources-list"
-                          className="input-field" 
-                          placeholder="מערכת מקור" 
-                          value={formData.sourceName} 
-                          onChange={e => setFormData({...formData, sourceName: e.target.value})} 
-                        />
-                        <datalist id="sources-list">
-                          {uniqueSources.map(s => <option key={s} value={s} />)}
-                        </datalist>
+                        <input list="sources-list" className="input-field" placeholder="מערכת מקור" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} />
+                        <datalist id="sources-list">{uniqueSources.map(s => <option key={s} value={s} />)}</datalist>
                       </div>
                     </div>
-
-                    {/* Extra Info */}
                     <div className="input-group">
                       <label className="input-label">מידע נוסף (Extra Info)</label>
-                      <textarea 
-                        className="input-field min-h-[80px]" 
-                        placeholder="הערות נוספות שיופיעו בתגית..." 
-                        value={formData.extraInfo} 
-                        onChange={e => setFormData({...formData, extraInfo: e.target.value})}
-                      ></textarea>
+                      <textarea className="input-field min-h-[80px]" placeholder="הערות נוספות..." value={formData.extraInfo} onChange={e => setFormData({...formData, extraInfo: e.target.value})}></textarea>
                     </div>
-
                     <button type="submit" disabled={isSubmitting} className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 ${isSubmitting ? 'opacity-70' : ''}`}>
                       {isSubmitting && <Icon name="Loader2" className="spin" />}
                       {isSubmitting ? 'שומר ומעדכן...' : 'שמור נתונים'}
                     </button>
                   </form>
                 )}
-
                 {step === 'success' && (
                   <div className="text-center py-8">
-                    <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 animate-bounce">
-                      <Icon name="Check" size={40} />
-                    </div>
+                    <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 animate-bounce"><Icon name="Check" size={40} /></div>
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">הנתונים נשמרו!</h3>
                     <p className="text-slate-500">הערכים החדשים נוספו למאגר ויעודכנו ברשימות מיד.</p>
                     <button onClick={onClose} className="mt-6 text-indigo-600 font-bold hover:underline">סגור חלונית</button>
@@ -342,6 +374,7 @@
         const [error, setError] = useState(null);
         const [selectedItem, setSelectedItem] = useState(null);
         const [showAddModal, setShowAddModal] = useState(false);
+        const [showRequestModal, setShowRequestModal] = useState(false); // סטייט חדש למודל הבקשה
 
         const fetchData = async () => {
           setIsLoading(true); setError(null);
@@ -385,13 +418,23 @@
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Search" size={18} /></div>
                 </div>
                 <div className="flex items-center gap-2">
+                   
+                   {/* כפתור חדש - בקשה להוספת מקור */}
+                   <button 
+                    onClick={() => setShowRequestModal(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-all"
+                  >
+                    <Icon name="HelpCircle" size={16} />
+                    <span className="hidden xl:inline">בקשה למקור חדש</span>
+                  </button>
+
                    <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
                     <Icon name="PlusCircle" size={16} />
                     <span className="hidden lg:inline">הוסף נתונים</span>
                   </button>
                   <button onClick={fetchData} disabled={isLoading} className={`flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 rounded-xl text-sm font-semibold transition-all ${isLoading ? 'opacity-70' : ''}`}>
                     <Icon name="RefreshCw" size={18} className={isLoading ? "spin" : ""} />
-                    <span className="hidden lg:inline">{isLoading ? "מעדכן..." : "רענן נתונים"}</span>
+                    <span className="hidden lg:inline">{isLoading ? "רענן" : "רענן"}</span>
                   </button>
                 </div>
               </div>
@@ -414,8 +457,8 @@
             </div>
             {selectedItem && <ViewModal item={selectedItem} onClose={() => setSelectedItem(null)} />}
             
-            {/* העברת כל הדאטה למודל כדי שידע לייצר את הרשימות */}
             {showAddModal && <AddDataModal onClose={() => setShowAddModal(false)} onRefresh={fetchData} existingData={data} />}
+            {showRequestModal && <RequestSourceWizard onClose={() => setShowRequestModal(false)} />}
           </div>
         );
       }
