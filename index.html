@@ -1,550 +1,265 @@
 <!DOCTYPE html>
-<html dir="rtl">
-  <head>
+<html lang="he" dir="rtl">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyst Data Hub</title>
-    
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
+    <title>GovMap Automation Dashboard</title>
     <style>
-      body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; color: #0f172a; direction: rtl; }
-      
-      .bg-gradient-fixed {
-        background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-      }
-
-      /* Scrollbar */
-      ::-webkit-scrollbar { width: 8px; }
-      ::-webkit-scrollbar-track { background: #f1f5f9; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-      /* Animations */
-      .fade-in { animation: fadeIn 0.2s ease-out forwards; }
-      @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-      .spin { animation: spin 1s linear infinite; }
-      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-      /* --- הקלאס המנצח: מסגרת שחורה תמיד --- */
-      .solid-input {
-        display: block;
-        width: 100%;
-        background-color: #ffffff;
-        border: 2px solid #000000 !important; /* מסגרת שחורה קבועה */
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-size: 14px;
-        color: #000000;
-        outline: none;
-        transition: all 0.2s;
-        margin-top: 6px;
-        box-sizing: border-box;
-      }
-
-      .solid-input:focus {
-        border-color: #4f46e5 !important; /* כחול אינדיגו רק בפוקוס */
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-      }
-
-      .solid-input::placeholder {
-        color: #94a3b8;
-      }
-
-      /* עיצוב התווית (Label) */
-      .field-label {
-        display: block;
-        font-size: 13px;
-        font-weight: 700;
-        color: #334155;
-        margin-bottom: 4px;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-        width: 100%;
-      }
-
-      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; z-index: 3000; animation: fadeIn 0.3s; }
-    </style>
-  </head>
-  <body>
-    <div class="bg-gradient-fixed"></div>
-    <div id="root"></div>
-
-    <script type="text/babel">
-      const { useState, useEffect, useMemo, useRef } = React;
-
-      // --- CONFIGURATION ---
-      const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
-      const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
-      const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
-
-      // --- הגדרות עמודות ---
-      const COLUMNS = [
-        { idx: 0, label: 'נושא', type: 'select', options: ['שיווק', 'כספים', 'משאבי אנוש', 'תפעול', 'טכנולוגיה', 'כללי'], required: true },
-        { idx: 1, label: 'תת נושא', type: 'text', required: true },
-        { idx: 2, label: 'אחראי', type: 'text' },
-        { idx: 3, label: 'אימייל אחראי', type: 'email' },
-        { idx: 4, label: 'תיאור מקור', type: 'textarea' },
-        { idx: 5, label: 'שם המקור', type: 'text' },
-        { idx: 6, label: 'טבלה מטויבת', type: 'text' },
-        { idx: 7, label: 'מקור (קישור)', type: 'text' },
-        { idx: 8, label: 'שם לקוח', type: 'text' },
-        { idx: 9, label: 'איש קשר ממקור הנתונים', type: 'text' },
-        { idx: 10, label: 'אופן העברה', type: 'select', options: ['אוטומטי (API)', 'ידני', 'מייל', 'ממשק דוחות'] },
-        { idx: 11, label: 'רגישות נתונים', type: 'select', options: ['גבוהה', 'בינונית', 'נמוכה', 'פומבי'] },
-        { idx: 12, label: 'תדירות העברה', type: 'select', options: ['יומי', 'שבועי', 'חודשי', 'רבעוני', 'שנתי', 'בזמן אמת'] },
-        { idx: 13, label: 'סוג המקור', type: 'select', options: ['פנימי', 'חיצוני', 'צד שלישי'] },
-        { idx: 14, label: 'איכות המקור', type: 'select', options: ['גבוהה', 'בינונית', 'נמוכה - דורש טיוב'] },
-        { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true }
-      ];
-
-      // --- UTILS ---
-      const parseCSV = (str) => {
-        const arr = [];
-        let quote = false, col = 0, row = 0, c = 0;
-        for (; c < str.length; c++) {
-          let cc = str[c], nc = str[c+1];
-          arr[row] = arr[row] || [];
-          arr[row][col] = arr[row][col] || '';
-          if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
-          if (cc == '"') { quote = !quote; continue; }
-          if (cc == ',' && !quote) { ++col; continue; }
-          if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
-          if (cc == '\n' && !quote) { ++row; col = 0; continue; }
-          if (cc == '\r' && !quote) { ++row; col = 0; continue; }
-          arr[row][col] += cc;
+        :root {
+            --primary: #0044cc;
+            --success: #28a745;
+            --bg: #f4f6f9;
         }
-        return arr;
-      };
-
-      const Icon = ({ name, size = 16, className = "" }) => {
-        const ref = useRef(null);
-        useEffect(() => {
-          if (window.lucide && ref.current) {
-            ref.current.innerHTML = '';
-            const i = document.createElement('i');
-            i.setAttribute('data-lucide', name);
-            i.style.width = `${size}px`;
-            i.style.height = `${size}px`;
-            i.className = className;
-            ref.current.appendChild(i);
-            try { window.lucide.createIcons({ root: ref.current, icons: { [name]: window.lucide.icons[name] } }); } catch(e) {}
-          }
-        }, [name, size, className]);
-        return <span ref={ref} className={`inline-flex items-center justify-center ${className}`} style={{width: size, height: size}}></span>;
-      };
-
-      const Linkify = ({ content }) => {
-        if (typeof content !== 'string') return content;
-        const parts = content.split(/((?:https?:\/\/|www\.)[^\s]+)/g);
-        return <>{parts.map((p, i) => p.match(/^(https?:\/\/|www\.)/) ? <a key={i} href={p.startsWith('www') ? `https://${p}` : p} target="_blank" className="text-indigo-600 hover:underline font-medium break-all" onClick={e=>e.stopPropagation()}>{p}</a> : p)}</>;
-      };
-
-      const Toast = ({ message, onClose }) => {
-        useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-        return <div className="toast"><Icon name="CheckCircle" size={20} className="text-emerald-400" /><span>{message}</span></div>;
-      };
-
-      // --- HELPERS ---
-      const getNotifications = (data, userEmail) => {
-         const notifications = [];
-         data.forEach(item => {
-            const itemName = item.values[1] || item.values[0];
-            const isMyItem = item.values[3] === userEmail;
-            let followers = [];
-            if (item.interestedUsers) followers = item.interestedUsers.split(",").filter(Boolean);
-            const isFollowing = followers.includes(userEmail);
-
-            if (isMyItem) {
-               followers.forEach(f => {
-                  if (f !== userEmail) notifications.push({ type: 'follow', user: f, item: itemName, date: null });
-               });
-               if (item.comments) {
-                  try {
-                     const comments = JSON.parse(item.comments);
-                     comments.forEach(c => {
-                        if (c.user !== userEmail) notifications.push({ type: 'comment', user: c.user, item: itemName, date: c.date, text: c.text });
-                     });
-                  } catch(e) {}
-               }
-            }
-            if (isFollowing && item.status === 'Closed') {
-               notifications.push({ type: 'status', user: 'המערכת', item: itemName, text: 'הבקשה הפכה למקור נתונים!' });
-            }
-         });
-         return notifications;
-      };
-
-      // --- COMPONENTS ---
-
-      const LoginPage = ({ onLogin, isChecking }) => {
-         const [email, setEmail] = useState("");
-         return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-               <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center fade-in border border-slate-200">
-                  <div className="bg-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Icon name="Database" size={40} className="text-white" /></div>
-                  <h1 className="text-3xl font-bold mb-2 text-slate-900">Analyst Data Hub</h1>
-                  <p className="text-slate-500 mb-8">ברוכים הבאים למאגר המידע המרכזי.<br/>נא להזדהות כדי להמשיך.</p>
-                  <form onSubmit={(e) => { e.preventDefault(); if(email.includes('@')) onLogin(email); }}>
-                     <div className="form-group text-right">
-                        <label className="field-label">כתובת מייל</label>
-                        <input type="email" name="email" autoComplete="email" className="solid-input" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-                     </div>
-                     <button disabled={isChecking} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-2 mt-4">{isChecking ? <Icon name="Loader2" className="spin" /> : "כניסה למערכת"}</button>
-                  </form>
-               </div>
-            </div>
-         );
-      };
-
-      const NotificationsModal = ({ onClose, notifications }) => {
-         return (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm fade-in" onClick={onClose}>
-               <div className="bg-white rounded-2xl w-full max-w-md flex flex-col max-h-[80vh] shadow-2xl" onClick={e=>e.stopPropagation()}>
-                  <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl">
-                     <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Icon name="Bell" size={20}/> ההתראות שלי</h2>
-                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="X" size={20} className="text-slate-400"/></button>
-                  </div>
-                  <div className="p-4 overflow-y-auto bg-slate-50 flex-1">
-                     {notifications.length === 0 ? 
-                        <div className="text-center py-10 opacity-50 flex flex-col items-center gap-2"><Icon name="Inbox" size={40} className="text-slate-300"/><p className="text-slate-400 text-sm">אין התראות חדשות</p></div> 
-                     : 
-                        <div className="space-y-3">
-                           {notifications.map((n, i) => (
-                              <div key={i} className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm flex gap-3 items-start">
-                                 <div className={`p-2 rounded-full shrink-0 ${n.type==='follow'?'bg-blue-100 text-blue-600':n.type==='status'?'bg-emerald-100 text-emerald-600':'bg-amber-100 text-amber-600'}`}>
-                                    <Icon name={n.type==='follow'?'UserPlus':n.type==='status'?'CheckCircle':'MessageCircle'} size={16} />
-                                 </div>
-                                 <div>
-                                    <p className="text-sm text-slate-800 leading-snug">{n.type==='status' ? <span className="font-bold text-emerald-600">עדכון סטטוס: </span> : <span className="font-bold">{n.user.split('@')[0]}</span>} {n.type==='follow'?' עוקב אחרי ':' הגיב על '} <span className="font-bold text-indigo-600">{n.item}</span></p>
-                                    {n.text && <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded border border-slate-100">"{n.text}"</p>}
-                                 </div>
-                              </div>
-                           ))}
-                        </div>
-                     }
-                  </div>
-               </div>
-            </div>
-         );
-      };
-
-      const Card = ({ item, onClick, index, userEmail }) => {
-        const domain = item.values[0] || "כללי";
-        const subTopic = item.values[1] || "ללא כותרת";
-        const owner = item.values[2] || "לא צוין";
-        const isRequest = domain === "בקשת מידע";
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        /* סרגל צד */
+        .sidebar {
+            width: 250px;
+            background: white;
+            padding: 20px;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .step {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .step-icon { font-size: 1.2rem; }
         
-        let comments = 0;
-        try { comments = item.comments ? JSON.parse(item.comments).length : 0; } catch (e) { comments = 0; }
-        const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean).length : 0;
-        const followersList = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
-        const isFollowing = followersList.includes(userEmail);
+        /* תוכן ראשי */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        h1 { margin-top: 0; color: #333; }
+        
+        /* אזור קלט */
+        .input-area {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
 
-        let badgeStyle = isRequest ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
-        let cardStyle = isRequest ? "border-orange-200 bg-orange-50/20" : "border-slate-200 bg-white";
-        let barColor = isRequest ? "bg-orange-500" : "bg-indigo-500";
+        /* טבלה */
+        table {
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+        th { background: #fafafa; font-weight: 600; }
+        .status-waiting { color: #999; }
+        .status-done { color: var(--success); font-weight: bold; }
+        
+        /* הודעת חיבור לתוסף */
+        #extension-status {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
 
-        if (!isRequest) {
-           if(domain.includes("שיווק")) { barColor = "bg-blue-500"; }
-           else if(domain.includes("כספים")) { barColor = "bg-emerald-500"; }
-           else if(domain.includes("טכנולוגיה")) { barColor = "bg-cyan-500"; }
+    <div class="sidebar">
+        <h3>📘 מדריך למשתמש</h3>
+        <div class="step">
+            <span class="step-icon">1️⃣</span> הזן כתובות בפורמט:<br>
+            <b>רחוב | מספר | עיר</b>
+        </div>
+        <div class="step">
+            <span class="step-icon">2️⃣</span> לחץ על "טען כתובות"
+        </div>
+        <div class="step">
+            <span class="step-icon">3️⃣</span> המערכת תפתח את GovMap
+        </div>
+        <div class="step">
+            <span class="step-icon">4️⃣</span> <b>במפה:</b> לחץ על הפין והמתן שהבועה תיפתח
+        </div>
+        <div class="step">
+            <span class="step-icon">5️⃣</span> סגור את הטאב וחזור לכאן
+        </div>
+    </div>
+
+    <div class="main-content">
+        <h1>מערכת אוטומציה GovMap</h1>
+        <p>שלום, הכינו את האצבעות 👆. המערכת מוכנה לעבודה.</p>
+
+        <div class="input-area">
+            <label>הזן רשימת כתובות (כל כתובת בשורה חדשה):</label>
+            <textarea id="addressInput" placeholder="הרצל | 15 | תל אביב&#10;ז'בוטינסקי | 2 | רמת גן"></textarea>
+            <button onclick="loadAddresses()">טען כתובות לטבלה</button>
+        </div>
+
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>כתובת מקורית</th>
+                    <th>סטטוס</th>
+                    <th>נתונים שנשלפו (GovMap)</th>
+                    <th>פעולה</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+        
+        <br>
+        <button id="exportBtn" onclick="exportToCSV()" style="background:#28a745; display:none;">הורד אקסל / CSV</button>
+    </div>
+
+    <div id="extension-status">🔴 ממתין לחיבור עם התוסף...</div>
+
+    <script>
+        let addresses = [];
+        let currentProcessIndex = -1;
+
+        // 1. טעינת הכתובות לטבלה
+        function loadAddresses() {
+            const rawText = document.getElementById('addressInput').value;
+            const lines = rawText.split('\n').filter(line => line.trim() !== '');
+            
+            const tbody = document.querySelector('#resultsTable tbody');
+            tbody.innerHTML = '';
+            addresses = [];
+
+            lines.forEach((line, index) => {
+                // ולידציה בסיסית
+                if (!line.includes('|')) {
+                    alert(`שורה לא תקינה: ${line}\nחייב להכיל מפריד "|"`);
+                    return;
+                }
+
+                addresses.push({ id: index, original: line.trim(), data: '', status: 'waiting' });
+                
+                const tr = document.createElement('tr');
+                tr.id = `row-${index}`;
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${line}</td>
+                    <td class="status">ממתין</td>
+                    <td class="extracted-data">-</td>
+                    <td><button onclick="processAddress(${index})">חפש</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            if (addresses.length > 0) {
+                document.getElementById('exportBtn').style.display = 'inline-block';
+            }
         }
 
-        return (
-          <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
-               className={`group fade-in rounded-2xl border shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${cardStyle}`}>
-            <div className={`h-1.5 w-full ${barColor}`}></div>
-            <div className="p-6 flex flex-col h-full">
-              <div className="flex justify-between items-start mb-4">
-                <span className={`text-[11px] font-bold px-3 py-1 rounded-full border tracking-wide uppercase ${badgeStyle}`}>{domain}</span>
-                <div className="flex gap-2 text-slate-400 text-[10px] items-center">
-                   {isRequest && (followers > 0 || comments > 0) && <div className="flex gap-2 bg-white/80 px-2 py-1 rounded border border-slate-200">{followers > 0 && <span className="flex items-center gap-1"><Icon name="Bell" size={12} /> {followers}</span>}{comments > 0 && <span className="flex items-center gap-1"><Icon name="MessageSquare" size={12} /> {comments}</span>}</div>}
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 leading-snug mb-3">{subTopic}</h3>
-              <div className="mt-auto pt-5 border-t border-slate-200/50 flex items-center justify-between text-slate-500 text-sm">
-                 <div className="flex items-center gap-2"><div className={`p-2 rounded-full ${isRequest?'bg-orange-100 text-orange-600':'bg-slate-100 text-slate-600'}`}><Icon name={isRequest?"CircleHelp":"User"} size={14} /></div><span className="truncate max-w-[140px] font-medium">{owner}</span></div>
-                 {isRequest && isFollowing && <div className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold flex items-center gap-1"><Icon name="Check" size={10}/> במעקב</div>}
-              </div>
-            </div>
-          </div>
-        );
-      };
+        // 2. פתיחת GovMap
+        function processAddress(index) {
+            currentProcessIndex = index;
+            const address = addresses[index].original;
+            
+            // עדכון סטטוס בטבלה
+            const row = document.getElementById(`row-${index}`);
+            row.querySelector('.status').innerText = '⏳ בטיפול...';
+            row.style.backgroundColor = '#fff3cd';
 
-      // --- טופס דינמי יציב ---
-      const DynamicForm = ({ title, formData, setFormData, onSubmit, onClose, submitText, isSubmitting, fullData }) => {
-         const handleChange = (idx, value) => {
-            const newValues = [...formData];
-            newValues[idx] = value;
-            setFormData(newValues);
-         }
-         
-         const getPlaceholder = (idx) => {
-             for (let i = 0; i < Math.min(fullData.length, 5); i++) {
-                 if (fullData[i].values[idx]) return "למשל: " + fullData[i].values[idx];
-             }
-             return "";
-         }
+            // ניקוי הסימנים "|" כדי ש-GovMap יבין
+            const searchString = address.replace(/\|/g, ' '); 
+            
+            // פתיחת חלון חדש
+            window.open(`https://www.govmap.gov.il/?q=${encodeURIComponent(searchString)}`, '_blank');
+        }
 
-         return (
-            <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] fade-in shadow-2xl" onClick={e=>e.stopPropagation()}>
-               <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl sticky top-0 z-10">
-                  <h2 className="font-bold text-xl text-slate-900">{title}</h2>
-                  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="X" size={20} className="text-slate-500"/></button>
-               </div>
-               <div className="p-6 overflow-y-auto custom-scrollbar bg-white">
-                  <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
-                     {COLUMNS.map((col) => {
-                        if (col.auto) return null;
-                        
-                        const isEmail = col.type === 'email';
-                        
-                        return (
-                           <div key={col.idx} className="form-group">
-                              <label className="field-label">{col.label}</label>
-                              {col.type === 'textarea' ? (
-                                 <textarea className="solid-input min-h-[100px] resize-y" placeholder={getPlaceholder(col.idx)} value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} />
-                              ) : col.type === 'select' ? (
-                                 <div className="relative">
-                                     <select className="solid-input appearance-none cursor-pointer" value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} required={col.required}>
-                                        <option value="" disabled>בחר אפשרות...</option>
-                                        {col.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                     </select>
-                                     <div className="absolute left-3 top-[38px] pointer-events-none text-slate-500"><Icon name="ChevronDown" size={16} /></div>
-                                 </div>
-                              ) : (
-                                 <input 
-                                    type={isEmail ? "email" : "text"} 
-                                    name={isEmail ? "email" : `field_${col.idx}`}
-                                    autoComplete={isEmail ? "email" : "off"}
-                                    className="solid-input" 
-                                    placeholder={getPlaceholder(col.idx)} 
-                                    value={formData[col.idx] || ''} 
-                                    onChange={e => handleChange(col.idx, e.target.value)} 
-                                    required={col.required} 
-                                 />
-                              )}
-                           </div>
-                        )
-                     })}
-                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-all mt-4 flex justify-center items-center gap-2">
-                        {isSubmitting ? <Icon name="Loader2" className="spin" /> : <><Icon name="Save" size={18} /> {submitText}</>}
-                     </button>
-                  </form>
-               </div>
-            </div>
-         );
-      }
+        // 3. האזנה לאירוע שמגיע מהתוסף (Connector.js)
+        window.addEventListener('GOVMAP_DATA_RECEIVED', (e) => {
+            const data = e.detail; // המידע שהגיע מהתוסף
+            console.log("התקבל מידע:", data);
 
-      const ViewEditModal = ({ item, onClose, onRefresh, setToast, userEmail, fullData }) => {
-         const [mode, setMode] = useState('view');
-         const [isSubmitting, setIsSubmitting] = useState(false);
-         const [comment, setComment] = useState("");
-         const [editData, setEditData] = useState([...item.values]); 
-         const isRequest = item.values[0] === "בקשת מידע";
-         const canEdit = userEmail === MANAGER_EMAIL || userEmail === item.values[3];
-         let commentsList = []; try { commentsList = item.comments ? JSON.parse(item.comments) : []; } catch (e) { commentsList = []; }
-         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
-         const isFollowing = followers.includes(userEmail);
+            // עדכון חיווי תוסף
+            const statusDiv = document.getElementById('extension-status');
+            statusDiv.innerHTML = "🟢 מחובר לתוסף";
+            statusDiv.style.background = "green";
 
-         const handleUpdate = async (isConvert = false) => {
-            setIsSubmitting(true);
-            const newDataArray = [...editData];
-            newDataArray[15] = new Date().toLocaleDateString('he-IL');
-            if(isConvert) { newDataArray[0] = ""; if(!newDataArray[3]) newDataArray[3] = userEmail; }
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id: item.id, values: newDataArray, status: isConvert ? 'Closed' : item.status }) }); setToast("עודכן בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 1000); } catch(e) { setIsSubmitting(false); alert("שגיאה"); }
-         }
+            // אם אין תהליך פעיל, אין מה לעדכן
+            if (currentProcessIndex === -1) return;
 
-         const handleComment = async () => {
-            if(!comment) return;
-            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addComment', id: item.id, userEmail, text: comment }) });
-            setToast("תגובה נוספה"); setTimeout(() => { onRefresh(); onClose(); }, 500);
-         }
+            // עדכון הטבלה
+            const row = document.getElementById(`row-${currentProcessIndex}`);
+            row.querySelector('.status').innerHTML = '<span class="status-done">✅ הושלם</span>';
+            row.querySelector('.extracted-data').innerText = data.latestData.substring(0, 50) + '...'; // הצצה למידע
+            row.style.backgroundColor = '#d4edda';
 
-         const handleFollow = async () => {
-            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'toggleFollow', id: item.id, userEmail }) });
-            setToast(isFollowing ? "הוסר מעקב" : "במעקב"); setTimeout(() => { onRefresh(); onClose(); }, 500);
-         }
+            // שמירת המידע באובייקט
+            addresses[currentProcessIndex].data = data.latestData;
+            addresses[currentProcessIndex].status = 'done';
 
-         if (mode === 'edit') return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 fade-in" onClick={onClose}><DynamicForm title={isRequest ? "הפיכה למקור" : "עריכה"} formData={editData} setFormData={setEditData} fullData={fullData} onSubmit={()=>handleUpdate(isRequest)} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
+            // סיום תהליך נוכחי
+            currentProcessIndex = -1;
+            
+            // צליל הצלחה קטן (אופציונלי)
+            new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3').play().catch(()=>({}));
+        });
 
-         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e=>e.stopPropagation()}>
-                  <div className={`p-6 border-b flex justify-between items-start sticky top-0 bg-white z-10 ${isRequest?'bg-orange-50':''}`}>
-                     <div><div className="flex gap-2 mb-2"><span className="text-xs font-bold px-2 py-1 rounded bg-slate-100 border border-slate-200">{item.values[0]}</span>{isRequest && <span className="text-xs text-orange-600 font-bold animate-pulse">בקשה</span>}</div><h2 className="text-2xl font-bold text-slate-900">{item.values[1]}</h2></div>
-                     <div className="flex gap-2">
-                        {canEdit && <button onClick={()=>setMode('edit')} className="p-2 border rounded-full hover:bg-slate-50 transition" title="ערוך"><Icon name="Edit3" size={18}/></button>}
-                        {isRequest && (
-                           <button onClick={handleFollow} className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${isFollowing ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                              {isFollowing ? <><Icon name="Check" size={16}/> במעקב</> : "עקוב"}
-                           </button>
-                        )}
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition"><Icon name="X" size={24}/></button>
-                     </div>
-                  </div>
-                  <div className="p-8 space-y-8 bg-white">
-                     <div className="grid grid-cols-1 gap-6">
-                        {COLUMNS.map((col) => {
-                           const val = item.values[col.idx];
-                           if (!val) return null;
-                           return <div key={col.idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200"><div className="text-xs font-bold text-slate-500 uppercase mb-2">{col.label}</div><div className="break-words text-slate-900 leading-relaxed font-medium"><Linkify content={val} /></div></div>;
-                        })}
-                     </div>
-                     {isRequest && (
-                        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-xl flex justify-between items-center shadow-lg shadow-indigo-200">
-                           <div><div className="font-bold text-lg">השגת את הנתונים?</div><div className="text-sm text-indigo-100">הפוך את הבקשה למקור מידע רשמי</div></div>
-                           <button onClick={()=>{ if (!canEdit) { alert("רק מי שפתח את הבקשה יכול לעדכן אותה"); return; } setMode('edit'); }} className={`bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all ${!canEdit && 'opacity-50 cursor-not-allowed'}`}>עדכן למקור</button>
-                        </div>
-                     )}
-                     <div className="border-t pt-6">
-                        <h3 className="font-bold mb-4 flex gap-2 text-sm text-slate-500 uppercase tracking-wide"><Icon name="MessageCircle" size={16}/> תגובות</h3>
-                        <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                           {commentsList.length===0 && <p className="text-slate-400 italic text-sm">אין תגובות עדיין.</p>}
-                           {commentsList.map((c,i)=><div key={i} className="flex gap-3"><div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">{c.user.substring(0,2)}</div><div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm"><span className="font-bold block text-xs text-slate-400 mb-1">{c.user.split('@')[0]}</span><p className="text-sm text-slate-700">{c.text}</p></div></div>)}
-                        </div>
-                        <div className="flex gap-2 relative"><input className="solid-input pl-4 pr-12" placeholder="הוסף תגובה..." value={comment} onChange={e=>setComment(e.target.value)} /><button onClick={handleComment} className="absolute left-2 top-[10px] p-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-700 transition"><Icon name="Send" size={14}/></button></div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         );
-      }
+        // 4. ייצוא ל-CSV
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM לעברית
+            csvContent += "כתובת מקורית,מידע שנשלף\n";
+            
+            addresses.forEach(addr => {
+                // ניקוי פסיקים כדי לא לשבור את ה-CSV
+                const safeData = addr.data.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, ";");
+                csvContent += `${addr.original},"${safeData}"\n`;
+            });
 
-      const RequestWizard = ({ onClose, onRefresh, setToast, userEmail }) => {
-         const [step, setStep] = useState(1);
-         const [isSubmitting, setIsSubmitting] = useState(false);
-         const [reqData, setReqData] = useState({ desc: '', topic: '', name: '', email: userEmail || '' });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "govmap_data.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
 
-         const handleSubmit = async (e) => {
-            e.preventDefault(); setIsSubmitting(true);
-            const values = Array(16).fill("");
-            values[0] = "בקשת מידע"; 
-            values[1] = reqData.desc; 
-            values[2] = reqData.name; 
-            values[3] = reqData.email; 
-            values[5] = reqData.topic; 
-            values[15] = new Date().toLocaleDateString('he-IL'); 
-
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values }) }); 
-            setToast("נפתח בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch(e) { alert("שגיאה"); } finally { setIsSubmitting(false); }
-         };
-
-         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}>
-               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e=>e.stopPropagation()}>
-                  <div className="bg-slate-900 p-8 text-white text-center relative"><h2 className="text-2xl font-bold relative z-10">{step===1?'בדיקת קטלוג':step===2?'בדיקת רשת':'פתיחת בקשה'}</h2><button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-white/20 rounded-full transition"><Icon name="X" size={20}/></button></div>
-                  <div className="p-8 overflow-y-auto">
-                     {step===1 && <div className="text-center space-y-6"><div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Library" size={40} className="text-indigo-600"/></div><h3 className="text-xl font-bold text-slate-800">האם ווידאת שהנתונים לא נמצאים בקטלוג (כולל בדיקה בבקשות)?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">בדקתי, אין</button></div></div>}
-                     {step===2 && <div className="text-center space-y-6"><div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Globe" size={40} className="text-cyan-600"/></div><h3 className="text-xl font-bold text-slate-800">האם ווידאת שהמידע אינו פומבי? אולי הוא נמצא באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400 hover:text-slate-600 transition">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold shadow-lg hover:bg-cyan-700 transition">חיפשתי, אין</button></div></div>}
-                     {step===3 && <div className="space-y-6">
-                        <div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">בסדר גמור, שלח מייל לגורמים הרלוונטים בבקשה למקור הנתונים. במקביל נשמח שגם תפתח בקשה ממש כאן למטה, אם צריך עזרה הנה המייל שלי:</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer bg-white border border-indigo-100 p-2 rounded-lg hover:shadow-md transition" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div>
-                        <form onSubmit={handleSubmit}>
-                           <div className="form-group">
-                              <label className="field-label">נושא הבקשה</label>
-                              <input required className="solid-input" placeholder="לדוגמא: בריאות הנפש" value={reqData.topic} onChange={e=>setReqData({...reqData, topic:e.target.value})} />
-                           </div>
-                           <div className="form-group"><label className="field-label">תיאור הנתונים החסרים</label><input required className="solid-input" placeholder="למשל: נתוני תאונות דרכים לפי עיר" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div>
-                           <div className="grid grid-cols-2 gap-4">
-                              <div className="form-group"><label className="field-label">שם מלא</label><input required className="solid-input" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div>
-                              <div className="form-group"><label className="field-label">מייל</label><input type="email" name="email" autoComplete="email" required className="solid-input" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div>
-                           </div>
-                           <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-700 mt-4 flex justify-center gap-2 transition">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button>
-                        </form>
-                     </div>}
-                  </div>
-               </div>
-            </div>
-         );
-      };
-
-      const AddDataWrapper = ({ onClose, onRefresh, fullData, setToast, userEmail }) => {
-         const [isSubmitting, setIsSubmitting] = useState(false);
-         const [formData, setFormData] = useState(Array(16).fill(""));
-         const handleSubmit = async () => { setIsSubmitting(true); const newData = [...formData]; newData[15] = new Date().toLocaleDateString('he-IL'); if(!newData[3]) newData[3] = userEmail; try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values: newData }) }); setToast("הנתונים נוספו!"); setTimeout(() => { onRefresh(); onClose(); }, 1500); } catch(e) { setIsSubmitting(false); alert("שגיאה"); } };
-         return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={onClose}><DynamicForm title="הוספת מקור נתונים" formData={formData} setFormData={setFormData} fullData={fullData} onSubmit={handleSubmit} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור למאגר" /></div>;
-      };
-
-      // --- MAIN APP ---
-      function App() {
-        const [data, setData] = useState([]);
-        const [searchTerm, setSearchTerm] = useState("");
-        const [selectedDomain, setSelectedDomain] = useState(null);
-        const [isLoading, setIsLoading] = useState(true);
-        const [selectedItem, setSelectedItem] = useState(null);
-        const [showAddModal, setShowAddModal] = useState(false);
-        const [showRequestModal, setShowRequestModal] = useState(false);
-        const [showNotifications, setShowNotifications] = useState(false);
-        const [toastMsg, setToastMsg] = useState(null);
-        const [userEmail, setUserEmail] = useState("");
-        const [isCheckingAuth, setIsCheckingAuth] = useState(false);
-
-        useEffect(() => { const storedEmail = localStorage.getItem('userEmail'); if (storedEmail) setUserEmail(storedEmail); }, []);
-        const checkPermission = async (email) => { setIsCheckingAuth(true); try { localStorage.setItem('userEmail', email); setUserEmail(email); } catch(e) { alert("שגיאה"); } finally { setIsCheckingAuth(false); } };
-
-        const fetchData = async () => { setIsLoading(true); try { const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(GOOGLE_CSV_URL + `&t=${Date.now()}`)}`); const text = await response.text(); const rows = parseCSV(text); if (rows.length < 2) { setData([]); return; } const newData = rows.slice(1).map((row, index) => { if (row.length < 2) return null; const values = []; for(let i=0; i<16; i++) values[i] = row[i] || ""; const interestedUsers = row[16] || ""; const comments = row[17] || "[]"; const status = row[18] || "Open"; return { id: index, values, interestedUsers, comments, status }; }).filter(i => i); setData(newData); } catch (err) { console.error(err); } finally { setIsLoading(false); } };
-        useEffect(() => { fetchData(); }, []);
-
-        const filteredData = useMemo(() => data.filter(item => { const term = searchTerm.toLowerCase(); const allText = item.values.join(" ").toLowerCase(); return allText.includes(term) && (selectedDomain ? item.values[0] === selectedDomain : true); }), [data, searchTerm, selectedDomain]);
-        const domains = [...new Set(data.map(i => i.values[0]).filter(d => d && d !== "בקשת מידע"))].filter(Boolean);
-        const notifications = useMemo(() => getNotifications(data, userEmail), [data, userEmail]);
-
-        if (!userEmail) return <LoginPage onLogin={checkPermission} isChecking={isCheckingAuth} />;
-
-        return (
-          <div className="min-h-screen pb-20 fade-in">
-             <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b border-slate-200 shadow-sm p-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="font-bold text-xl flex items-center gap-2 cursor-pointer select-none" onClick={()=>{setSelectedDomain(null);}}>
-                   <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-200"><Icon name="Database" size={20} /></div> 
-                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Analyst Data Hub</span>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto items-center">
-                   <button onClick={() => setShowRequestModal(true)} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 hover:bg-indigo-50 flex items-center gap-2 whitespace-nowrap"><Icon name="CircleHelp" size={16} /> בקשה למקור חדש</button>
-                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-slate-800 flex items-center gap-2 whitespace-nowrap"><Icon name="Plus" size={16} /> הוספת מקור</button>
-                   <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-2 whitespace-nowrap"><Icon name="RefreshCw" size={18} className={isLoading?"spin text-indigo-600":"text-slate-500"} /><span className="hidden sm:inline">רענן נתונים</span></button>
-                   <button onClick={() => setShowNotifications(true)} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50 relative flex items-center gap-2 whitespace-nowrap"><Icon name="Bell" size={18} /><span className="hidden sm:inline">ההתראות שלי</span>{notifications.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>}</button>
-                   <button onClick={() => { localStorage.removeItem('userEmail'); setUserEmail(""); }} className="bg-red-50 text-red-600 border border-red-100 px-3 py-2 rounded-xl hover:bg-red-100" title="התנתק"><Icon name="LogOut" size={18} /></button>
-                </div>
-             </header>
-
-             <div className="max-w-7xl mx-auto px-4 mt-8">
-                <div className="mb-8 relative group"><input placeholder="חיפוש חופשי בכל המאגר..." className="solid-input" style={{paddingLeft: '50px'}} value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} /><Icon name="Search" className="absolute left-4 top-[18px] text-slate-400" /></div>
-                <div className="flex flex-wrap gap-2 mb-8">
-                   <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl font-bold text-sm ${!selectedDomain?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>הכל</button>
-                   <button onClick={() => setSelectedDomain("בקשת מידע")} className={`px-4 py-2 rounded-xl font-bold text-sm ${selectedDomain==="בקשת מידע"?'bg-orange-500 text-white shadow-lg shadow-orange-200 scale-105':'bg-white text-orange-600 border border-orange-200 hover:bg-orange-50'}`}>בקשות</button>
-                   {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl font-bold text-sm ${selectedDomain===d?'bg-slate-800 text-white shadow-lg scale-105':'bg-white text-slate-600 hover:bg-slate-50'}`}>{d}</button>)}
-                </div>
-
-                {isLoading && data.length === 0 ? (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{[1,2,3,4,5,6].map(i => (<div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3"><div className="h-6 bg-slate-100 rounded w-1/3"></div><div className="h-8 bg-slate-200 rounded w-3/4"></div><div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div></div>))}</div>
-                ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} userEmail={userEmail} />))}</div>
-                )}
-                {!isLoading && filteredData.length === 0 && <div className="text-center py-20 text-slate-400"><Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/><p className="text-xl font-medium">לא נמצאו תוצאות</p></div>}
-             </div>
-
-             {selectedItem && <ViewEditModal item={selectedItem} onClose={()=>setSelectedItem(null)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} fullData={data} />}
-             {showAddModal && <AddDataWrapper onClose={()=>setShowAddModal(false)} onRefresh={fetchData} fullData={data} setToast={setToastMsg} userEmail={userEmail} />}
-             {showRequestModal && <RequestWizard onClose={()=>setShowRequestModal(false)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} />}
-             {showNotifications && <NotificationsModal onClose={()=>setShowNotifications(false)} data={data} notifications={notifications} />}
-             {toastMsg && <Toast message={toastMsg} onClose={()=>setToastMsg(null)} />}
-          </div>
-        );
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<React.StrictMode><App /></React.StrictMode>);
+        // בדיקה ראשונית שהקוד רץ
+        console.log("Dashboard Loaded");
     </script>
-  </body>
+</body>
 </html>
-
