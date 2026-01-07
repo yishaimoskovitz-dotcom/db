@@ -40,8 +40,8 @@
         <div class="step">
             <div class="step-num">1</div>
             <strong>גרירת הבוט</strong>
-            אם כבר יש לך את "בוט V3", דלג. אם לא, גרור:
-            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V3</a>
+            תמחק את הבוט הישן מהמועדפים וגרור את זה:
+            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V4 (חכם)</a>
         </div>
 
         <div class="step">
@@ -130,7 +130,7 @@
             return { city: cityCandidate, avg: 0 }; // ברירת מחדל
         }
 
-        // === בוט V3 ===
+        // === בוט V4 משופר (מתקן את הבעיה של אי מציאת שורת החיפוש) ===
         const botCode = `
             (function(){
                 if(location.hostname.indexOf('govmap')===-1){alert('רק ב-GovMap!');return;}
@@ -138,10 +138,18 @@
                 window.opener.postMessage({type:'BOT_CONNECTED'},'*');
                 alert('✅ בוט מחובר! וודא שהשכבות דלוקות.');
                 
+                // חיפוש אגרסיבי של שורת החיפוש
                 function findInput(){
-                    let i=document.getElementById('txtSearch');
-                    if(!i)i=document.querySelector('input[placeholder*="כתובת"]');
-                    if(!i)i=document.querySelector('.search-input');
+                    let i = document.getElementById('txtSearch');
+                    if(!i) i = document.querySelector('input[placeholder*="כתובת"]');
+                    if(!i) i = document.querySelector('.search-input');
+                    // אם עדיין לא מצא, חפש כל אינפוט טקסט שנראה רלוונטי
+                    if(!i) {
+                         const inputs = document.querySelectorAll('input[type="text"]');
+                         for(let inp of inputs) {
+                             if(inp.id.toLowerCase().includes('search')) return inp;
+                         }
+                    }
                     return i;
                 }
 
@@ -149,11 +157,20 @@
                     if(e.data.type==='SEARCH_ADDRESS'){
                         let inp=findInput();
                         let btn=document.querySelector('#btnSearch')||document.querySelector('.search-btn');
+                        
                         if(inp){
                             inp.value=e.data.text;
                             inp.dispatchEvent(new Event('input',{bubbles:true}));
                             inp.dispatchEvent(new Event('change',{bubbles:true}));
-                            if(btn) setTimeout(()=>btn.click(),500);
+                            
+                            // נסיון ללחוץ על כפתור, אם אין כפתור נשלח אנטר
+                            if(btn) {
+                                setTimeout(()=>btn.click(),500);
+                            } else {
+                                inp.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Enter'}));
+                            }
+                        } else {
+                            alert('❌ הבוט לא מצא את שורת החיפוש! GovMap שינו משהו.');
                         }
                     }
                 });
@@ -290,4 +307,3 @@
     </script>
 </body>
 </html>
-
