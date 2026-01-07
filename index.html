@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovMap Pro - Integrated Logic</title>
+    <title>GovMap Pro - V5 Hunter</title>
     <style>
         :root { --primary: #0044cc; --success: #28a745; --bg: #f4f6f9; --warning: #ffc107; --danger: #dc3545; }
         body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); margin: 0; display: flex; height: 100vh; }
@@ -12,8 +12,8 @@
         .step-num { position: absolute; top: -10px; right: -10px; background: var(--primary); color: white; width: 25px; height: 25px; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold; }
         
         #bookmarklet-link {
-            display: block; background: #6610f2; color: white; text-decoration: none; padding: 12px;
-            text-align: center; border-radius: 6px; font-weight: bold; border: 2px dashed #bba1ea; cursor: grab; margin-top: 10px;
+            display: block; background: #d63384; color: white; text-decoration: none; padding: 12px;
+            text-align: center; border-radius: 6px; font-weight: bold; border: 2px dashed #ff99cc; cursor: grab; margin-top: 10px;
         }
         
         table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 0.9rem; }
@@ -35,38 +35,40 @@
 <body>
 
     <div class="sidebar">
-        <h3>📘 הוראות (V4 משולב)</h3>
+        <h3>📘 הוראות תיקון (V5)</h3>
         
         <div class="step">
             <div class="step-num">1</div>
-            <strong>גרירת הבוט</strong>
-            תמחק את הבוט הישן מהמועדפים וגרור את זה:
-            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V4 (חכם)</a>
+            <strong>גרירת הבוט החדש</strong>
+            מחק את הקודם וגרור את זה:
+            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V5 (הצייד)</a>
         </div>
 
         <div class="step">
             <div class="step-num">2</div>
-            <strong>פתיחה והגדרות</strong>
+            <strong>פתיחה</strong>
             <button class="action-btn btn-open" onclick="openGovMapWindow()">🌍 פתח חלון GovMap</button>
             <p style="font-size:0.85rem; margin-top:5px; color:#d63384;">
-                * חובה להדליק שכבות (נדל"ן/גושים) ידנית בחלון שנפתח.
+                * וודא שאין חוסם פופ-אפ.
             </p>
         </div>
 
         <div class="step">
             <div class="step-num">3</div>
             <strong>חיבור</strong>
-            לחץ על הבוט במועדפים בחלון המפה. וודא שכתוב למטה "מחובר".
+            בחלון המפה -> לחץ על הבוט במועדפים.
+            <br>
+            <b>חובה לראות הודעה ירוקה "מחובר".</b>
         </div>
     </div>
 
     <div style="flex: 1; padding: 30px; overflow-y: auto;">
-        <h1>מערכת משולבת (GovMap + סטטיסטיקה)</h1>
+        <h1>מערכת משולבת V5</h1>
         
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <label style="font-weight:bold;">הזן כתובות:</label>
             <textarea id="addressInput" style="width:100%; height:100px; margin:10px 0; padding:10px; border:1px solid #ccc;" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, בני ברק"></textarea>
-            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען וחשב סטטיסטיקה</button>
+            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען כתובות</button>
         </div>
 
         <table id="resultsTable">
@@ -74,120 +76,125 @@
                 <tr>
                     <th>#</th>
                     <th>כתובת</th>
-                    <th>עיר (מזוהה)</th>
-                    <th>צפי נפשות (טווח)</th>
-                    <th>סטטוס GovMap</th>
-                    <th>מידע שנשלף</th>
+                    <th>עיר</th>
+                    <th>נפשות</th>
+                    <th>סטטוס</th>
+                    <th>מידע</th>
                     <th>פעולה</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
         <br>
-        <button id="exportBtn" onclick="exportToCSV()" style="background:#17a2b8; color:white; border:none; padding:10px 20px; display:none; border-radius:4px; cursor:pointer;">הורד אקסל (עם סיכום)</button>
+        <button id="exportBtn" onclick="exportToCSV()" style="background:#17a2b8; color:white; border:none; padding:10px 20px; display:none; border-radius:4px; cursor:pointer;">הורד אקסל</button>
     </div>
 
     <div id="connection-status">🔴 מנותק</div>
 
     <script>
-        // === לוגיקה מהפייתון: נתוני אוכלוסייה ===
+        // === מילון נתונים ===
         const CITY_STATS = {
             "ירושלים": 3.8, "תל אביב - יפו": 2.2, "חיפה": 2.4, "ראשון לציון": 2.9,
             "פתח תקווה": 3.0, "אשדוד": 3.2, "נתניה": 3.0, "באר שבע": 2.9,
-            "בני ברק": 4.8, "חולון": 2.8, "רמת גן": 2.3, "רחובות": 2.9,
-            "אשקלון": 3.0, "בת ים": 2.6, "בית שמש": 4.6, "כפר סבא": 3.0,
-            "הרצליה": 2.8, "חדרה": 2.9, "מודיעין מכבים רעות": 3.4, "נצרת": 3.9,
-            "לוד": 3.5, "רמלה": 3.4, "רעננה": 3.1, "מודיעין עילית": 6.2,
-            "ביתר עילית": 5.8, "הוד השרון": 3.1, "גבעתיים": 2.3, "קריית אתא": 2.8,
-            "נהריה": 2.6, "אילת": 2.3, "עכו": 3.0, "כרמיאל": 2.7,
-            "טבריה": 2.9, "אום אל פחם": 4.4, "רהט": 5.9, "נתיבות": 3.9,
-            "אלעד": 5.8, "ראש העין": 3.5, "נס ציונה": 3.0, "קריית מוצקין": 2.6,
-            "קריית גת": 3.3, "עפולה": 2.9, "יבנה": 3.2
+            "בני ברק": 4.8, "חולון": 2.8, "רמת גן": 2.3, "רחובות": 2.9
         };
 
         function getCityStats(address) {
-            // לוגיקה זהה לפייתון לחילוץ שם העיר
-            let cityCandidate = "";
-            if (address.includes(",")) {
-                cityCandidate = address.split(",").pop().trim();
-            } else {
-                let parts = address.split(" ");
-                cityCandidate = parts[parts.length - 1];
-                if (parts.length >= 2) {
-                    let twoWords = parts[parts.length - 2] + " " + parts[parts.length - 1];
-                    for (let key in CITY_STATS) {
-                        if (key.includes(twoWords.replace(',', ''))) return { city: key, avg: CITY_STATS[key] };
-                    }
-                }
-            }
-
-            // חיפוש במילון
+            let city = address.split(",").pop().trim();
             for (let key in CITY_STATS) {
-                if (cityCandidate.includes(key) || key.includes(cityCandidate.replace(',', ''))) {
-                    return { city: key, avg: CITY_STATS[key] };
-                }
+                if (city.includes(key)) return { city: key, avg: CITY_STATS[key] };
             }
-            return { city: cityCandidate, avg: 0 }; // ברירת מחדל
+            return { city: city, avg: 0 };
         }
 
-        // === בוט V4 משופר (מתקן את הבעיה של אי מציאת שורת החיפוש) ===
+        // === בוט V5: ה"צייד" ===
         const botCode = `
             (function(){
-                if(location.hostname.indexOf('govmap')===-1){alert('רק ב-GovMap!');return;}
-                if(!window.opener){alert('אין קשר לאתר');return;}
-                window.opener.postMessage({type:'BOT_CONNECTED'},'*');
-                alert('✅ בוט מחובר! וודא שהשכבות דלוקות.');
+                // 1. בדיקת סביבה
+                if(location.hostname.indexOf('govmap')===-1){alert('❌ הבוט עובד רק ב-GovMap!');return;}
+                if(!window.opener){alert('❌ נותק הקשר! עליך לסגור את הטאב ולפתוח מחדש דרך האתר.');return;}
                 
-                // חיפוש אגרסיבי של שורת החיפוש
-                function findInput(){
-                    let i = document.getElementById('txtSearch');
-                    if(!i) i = document.querySelector('input[placeholder*="כתובת"]');
-                    if(!i) i = document.querySelector('.search-input');
-                    // אם עדיין לא מצא, חפש כל אינפוט טקסט שנראה רלוונטי
-                    if(!i) {
-                         const inputs = document.querySelectorAll('input[type="text"]');
-                         for(let inp of inputs) {
-                             if(inp.id.toLowerCase().includes('search')) return inp;
-                         }
+                window.opener.postMessage({type:'BOT_CONNECTED'},'*');
+                alert('✅ הבוט חובר!\\n\\nעכשיו הדלק שכבות ואז שלח כתובות.');
+                
+                // פונקציה אגרסיבית למציאת החיפוש
+                function simulateSearch(text) {
+                    console.log("🤖 הבוט מחפש את: " + text);
+
+                    // רשימת כל המקומות האפשריים שבהם GovMap מחביאים את החיפוש
+                    let potentialInputs = [
+                        document.getElementById('txtSearch'),
+                        document.querySelector('input[placeholder*="כתובת"]'),
+                        document.querySelector('input[placeholder*="גוש"]'),
+                        document.querySelector('.search-input'),
+                        document.querySelector('#mainSearchInput'),
+                        document.querySelector('input[type="search"]')
+                    ];
+
+                    // סינון ולקחת את הראשון שקיים
+                    let input = potentialInputs.find(i => i !== null);
+
+                    if(!input) {
+                        // כמוצא אחרון: חפש כל אינפוט טקסט בחלק העליון של הדף
+                        let allInputs = document.querySelectorAll('input[type="text"]');
+                        if(allInputs.length > 0) input = allInputs[0];
                     }
-                    return i;
+
+                    if(input) {
+                        console.log("✅ שורת החיפוש נמצאה:", input);
+                        
+                        // 1. ניקוי ופוקוס
+                        input.value = '';
+                        input.focus();
+                        input.click();
+
+                        // 2. הזנה "אנושית"
+                        input.value = text;
+                        input.dispatchEvent(new Event('input', {bubbles:true}));
+                        input.dispatchEvent(new Event('change', {bubbles:true}));
+                        
+                        // 3. ניסיון לחיצה על אנטר
+                        setTimeout(() => {
+                            input.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Enter', 'code': 'Enter', 'which': 13, 'bubbles': true}));
+                            input.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter', 'code': 'Enter', 'which': 13, 'bubbles': true}));
+                            input.dispatchEvent(new KeyboardEvent('keyup', {'key': 'Enter', 'code': 'Enter', 'which': 13, 'bubbles': true}));
+                            
+                            // 4. ניסיון לחיצה על כפתור הזכוכית מגדלת
+                            let btn = document.querySelector('#btnSearch') || document.querySelector('.search-btn');
+                            if(btn) { 
+                                btn.click();
+                                console.log("✅ נלחץ כפתור חיפוש");
+                            }
+                        }, 300);
+
+                    } else {
+                        alert('❌ הבוט לא מוצא את שורת החיפוש! נסה לרענן את GovMap.');
+                    }
                 }
 
-                window.addEventListener('message',function(e){
-                    if(e.data.type==='SEARCH_ADDRESS'){
-                        let inp=findInput();
-                        let btn=document.querySelector('#btnSearch')||document.querySelector('.search-btn');
-                        
-                        if(inp){
-                            inp.value=e.data.text;
-                            inp.dispatchEvent(new Event('input',{bubbles:true}));
-                            inp.dispatchEvent(new Event('change',{bubbles:true}));
-                            
-                            // נסיון ללחוץ על כפתור, אם אין כפתור נשלח אנטר
-                            if(btn) {
-                                setTimeout(()=>btn.click(),500);
-                            } else {
-                                inp.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Enter'}));
-                            }
-                        } else {
-                            alert('❌ הבוט לא מצא את שורת החיפוש! GovMap שינו משהו.');
-                        }
+                // האזנה לפקודות
+                window.addEventListener('message', function(e){
+                    if(e.data.type === 'SEARCH_ADDRESS') {
+                        simulateSearch(e.data.text);
                     }
                 });
 
-                const obs=new MutationObserver(()=>{
-                    let p=document.querySelector('.esri-popup__content');
-                    if(p && p.innerText.length>5 && !p.dataset.scraped){
-                        p.dataset.scraped="true";
-                        window.opener.postMessage({type:'DATA_EXTRACTED',payload:p.innerText.replace(/\\s+/g,' ').trim()},'*');
-                        let b=document.createElement('div');
-                        b.innerText='✅ נשלח';
-                        b.style.cssText='position:fixed;top:100px;right:20px;background:green;color:white;padding:10px;z-index:99999;';
+                // סורק הבועות (Scraper)
+                const obs = new MutationObserver(() => {
+                    let p = document.querySelector('.esri-popup__content');
+                    if(p && p.innerText.length > 5 && !p.dataset.scraped) {
+                        p.dataset.scraped = "true";
+                        window.opener.postMessage({type:'DATA_EXTRACTED', payload: p.innerText.replace(/\\s+/g,' ').trim()}, '*');
+                        
+                        let b = document.createElement('div');
+                        b.innerText = '✅ נשלח!';
+                        b.style.cssText = 'position:fixed;top:100px;right:20px;background:#28a745;color:white;padding:10px;z-index:9999;border-radius:5px;';
                         document.body.appendChild(b);
-                        setTimeout(()=>b.remove(),2000);
+                        setTimeout(() => b.remove(), 2000);
                     }
                 });
-                obs.observe(document.body,{childList:true,subtree:true});
+                obs.observe(document.body, {childList:true, subtree:true});
+
             })();
         `;
         document.getElementById('bookmarklet-link').href = 'javascript:' + encodeURIComponent(botCode);
@@ -209,7 +216,6 @@
             addresses = [];
 
             lines.forEach((line, index) => {
-                // שימוש בלוגיקה מהפייתון
                 const stats = getCityStats(line);
                 const rangeLow = stats.avg > 0 ? (stats.avg - 0.5).toFixed(1) : 0;
                 const rangeHigh = stats.avg > 0 ? (stats.avg + 0.5).toFixed(1) : 0;
@@ -230,11 +236,7 @@
                     <td>${index + 1}</td>
                     <td>${line}</td>
                     <td>${stats.city}</td>
-                    <td>
-                        <span class="pop-stats">
-                            ${stats.avg > 0 ? rangeLow + ' - ' + rangeHigh : 'לא ידוע'}
-                        </span>
-                    </td>
+                    <td>${stats.avg > 0 ? rangeLow + '-' + rangeHigh : '-'}</td>
                     <td class="status">ממתין</td>
                     <td class="extracted-data">-</td>
                     <td><button class="action-btn" style="background:#007bff; color:white;" onclick="sendToMap(${index})">חפש</button></td>
@@ -246,7 +248,7 @@
 
         function sendToMap(index) {
             if (!govMapWindow || govMapWindow.closed) {
-                alert("GovMap נסגר!"); return;
+                alert("חלון GovMap סגור! פתח מחדש."); return;
             }
             currentProcessIndex = index;
             const address = addresses[index].original.replace(/,/g, ' ');
@@ -262,7 +264,7 @@
         window.addEventListener('message', (e) => {
             if (e.data.type === 'BOT_CONNECTED') {
                 const status = document.getElementById('connection-status');
-                status.innerText = "🟢 מחובר";
+                status.innerText = "🟢 מחובר!";
                 status.style.background = "#28a745";
                 govMapWindow = e.source;
             }
@@ -278,26 +280,16 @@
             }
         });
 
-        // === ייצוא לאקסל (לוגיקה מהפייתון) ===
         function exportToCSV() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "Address,City,Range Low,Range High,GovMap Data\n";
-            
-            let totalLow = 0;
-            let totalHigh = 0;
-
+            let totalLow = 0, totalHigh = 0;
             addresses.forEach(addr => {
                 totalLow += addr.rangeLow;
                 totalHigh += addr.rangeHigh;
-                
-                const safeData = addr.data.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, ";");
-                const safeAddr = addr.original.replace(/,/g, " ");
-                csvContent += `${safeAddr},${addr.city},${addr.rangeLow},${addr.rangeHigh},"${safeData}"\n`;
+                csvContent += `${addr.original.replace(/,/g, " ")},${addr.city},${addr.rangeLow},${addr.rangeHigh},"${addr.data.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, ";")}"\n`;
             });
-
-            // שורת סיכום כמו בפייתון
             csvContent += `TOTAL,,,${totalLow.toFixed(1)},${totalHigh.toFixed(1)},SUM_ROW\n`;
-
             const link = document.createElement("a");
             link.setAttribute("href", encodeURI(csvContent));
             link.setAttribute("download", "govmap_full_analysis.csv");
