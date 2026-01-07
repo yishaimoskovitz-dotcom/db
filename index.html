@@ -7,76 +7,86 @@
     <style>
         :root { --primary: #0044cc; --success: #28a745; --bg: #f4f6f9; --warning: #ffc107; --danger: #dc3545; }
         body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); margin: 0; display: flex; height: 100vh; }
-        .sidebar { width: 280px; background: white; padding: 20px; border-left: 1px solid #ddd; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .step { padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem; border: 1px solid #eee; }
-        .step strong { display: block; margin-bottom: 5px; color: var(--primary); }
+        .sidebar { width: 300px; background: white; padding: 20px; border-left: 1px solid #ddd; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .step { padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.95rem; border: 1px solid #eee; position: relative; }
+        .step-num { position: absolute; top: -10px; right: -10px; background: var(--primary); color: white; width: 25px; height: 25px; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold; }
+        .step strong { display: block; margin-bottom: 5px; color: #333; }
         .main-content { flex: 1; padding: 40px; overflow-y: auto; }
-        .input-area { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; }
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* כפתור הבוט המיוחד */
+        /* כפתור הבוט - משופר */
         #bookmarklet-link {
             display: block;
             background: #6f42c1;
             color: white;
             text-decoration: none;
-            padding: 15px;
+            padding: 12px;
             text-align: center;
-            border-radius: 8px;
+            border-radius: 6px;
             font-weight: bold;
             border: 2px dashed #bba1ea;
-            cursor: move; /* סמן גרירה */
+            cursor: grab;
+            margin-top: 10px;
         }
-        #bookmarklet-link:hover { background: #5a32a3; }
+        #bookmarklet-link:active { cursor: grabbing; }
 
         table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         th, td { padding: 12px; text-align: right; border-bottom: 1px solid #eee; }
         th { background: #fafafa; font-weight: 600; }
         .status-done { color: var(--success); font-weight: bold; }
-        #connection-status { position: fixed; bottom: 10px; left: 10px; background: #dc3545; color: white; padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        
+        #connection-status { 
+            position: fixed; bottom: 20px; left: 20px; 
+            background: #dc3545; color: white; 
+            padding: 10px 20px; border-radius: 30px; 
+            font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn { width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-open { background: var(--success); color: white; }
+        .btn-check { background: var(--warning); color: #333; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h3>📘 הוראות הפעלה</h3>
+        <h3>📘 מדריך הפעלה (חובה לקרוא)</h3>
         
-        <div class="step" style="border-color: #6f42c1; background: #f3eafa;">
-            <strong>1️⃣ התקנה חד-פעמית</strong>
-            גרור את הכפתור הסגול למטה אל סרגל הסימניות שלך בדפדפן (Favorites Bar).
-            <br><br>
-            <a id="bookmarklet-link" href="#" onclick="alert('יש לגרור את הכפתור הזה לסרגל המועדפים למעלה, לא ללחוץ עליו! 😉'); return false;">
-                🤖 בוט GovMap
+        <div class="step">
+            <div class="step-num">1</div>
+            <strong>גרירת הבוט (חד פעמי)</strong>
+            גרור את הכפתור הסגול הזה לסרגל הסימניות למעלה בדפדפן:
+            <a id="bookmarklet-link" href="#" onclick="alert('לא ללחוץ! צריך לגרור את זה לסרגל למעלה 👆'); return false;">
+                🤖 בוט GovMap v2.0
             </a>
         </div>
 
         <div class="step">
-            <strong>2️⃣ פתיחת המפה</strong>
-            לחץ על "פתח GovMap" כאן באתר.
+            <div class="step-num">2</div>
+            <strong>פתיחה והגדרות</strong>
+            <button class="action-btn btn-open" onclick="openGovMapWindow()">🌍 פתח חלון GovMap</button>
+            <p style="font-size:0.85rem; margin-top:5px; color:#555;">
+                בחלון שנפתח: <br>
+                1. תדליק את כל השכבות שאתה צריך.<br>
+                2. תלחץ על הבוט הסגול שגררת למועדפים.
+            </p>
         </div>
 
         <div class="step">
-            <strong>3️⃣ הפעלת הבוט</strong>
-            בחלון החדש של GovMap שנפתח, לחץ על הבוט שגררת למועדפים. תראה הודעה "בוט מחובר".
-        </div>
-
-        <div class="step">
-            <strong>4️⃣ עבודה שוטפת</strong>
-            שלח כתובות מכאן -> הבוט יחפש -> לחץ על פין -> המידע יחזור לבד.
+            <div class="step-num">3</div>
+            <strong>בדיקת קשר</strong>
+            חזור לפה. אם הבוט עובד, אתה תראה למטה סימון ירוק "מחובר".
+            <button class="action-btn btn-check" onclick="testConnection()">📡 שלח בדיקת תקשורת</button>
         </div>
     </div>
 
     <div class="main-content">
-        <h1>מערכת אוטומציה GovMap (ללא התקנה)</h1>
+        <h1>מערכת אוטומציה GovMap</h1>
         
-        <div class="input-area">
-            <button onclick="openGovMapWindow()" style="background: #28a745; margin-bottom: 15px;">🌍 פתח חלון GovMap לעבודה</button>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-            <label>הזן רשימת כתובות (רחוב, מספר, עיר):</label>
-            <textarea id="addressInput" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, רמת גן"></textarea>
-            <button onclick="loadAddresses()">טען כתובות לטבלה</button>
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <label style="font-weight:bold;">הזן רשימת כתובות (רחוב, מספר, עיר):</label>
+            <textarea id="addressInput" style="width:100%; height:100px; margin:10px 0; padding:10px; border:1px solid #ccc;" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, רמת גן"></textarea>
+            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען כתובות לטבלה</button>
         </div>
 
         <table id="resultsTable">
@@ -86,69 +96,111 @@
             <tbody></tbody>
         </table>
         <br>
-        <button id="exportBtn" onclick="exportToCSV()" style="background:#17a2b8; display:none;">הורד אקסל / CSV</button>
+        <button id="exportBtn" onclick="exportToCSV()" style="background:#17a2b8; color:white; border:none; padding:10px 20px; display:none; border-radius:4px; cursor:pointer;">הורד אקסל / CSV</button>
     </div>
 
-    <div id="connection-status">🔴 מנותק מ-GovMap</div>
+    <div id="connection-status">🔴 מנותק - בצע את שלב 2</div>
 
     <script>
-        // --- יצירת קוד הבוט (Bookmarklet) ---
-        // זה הקוד שירוץ בתוך GovMap כשתלחץ על המועדפים
+        // --- קוד הבוט המשופר (מוזרק למפה) ---
         const botCode = `
             (function(){
-                if(!window.opener) { alert('שגיאה: יש לפתוח את GovMap דרך הדאשבורד בלבד!'); return; }
+                // 1. בדיקה שאנחנו ב-GovMap
+                if(location.hostname.indexOf('govmap') === -1) { 
+                    alert('❌ שגיאה: הבוט הזה עובד רק באתר GovMap!'); return; 
+                }
+
+                // 2. בדיקה שיש אבא (האתר שלך)
+                if(!window.opener) { 
+                    alert('❌ שגיאה: נותק הקשר עם הדאשבורד. יש לסגור ולפתוח מחדש דרך האתר.'); return; 
+                }
                 
-                alert('🤖 הבוט חובר בהצלחה לדאשבורד!');
+                // הודעת הצלחה ראשונית
+                alert('✅ הבוט חובר! \\nעכשיו תוודא שהשכבות דלוקות ואז תחזור לאתר.');
                 window.opener.postMessage({type: 'BOT_CONNECTED'}, '*');
 
-                // 1. האזנה לפקודות מהדאשבורד
+                // 3. האזנה לפקודות
                 window.addEventListener('message', function(e) {
+                    console.log('Bot received:', e.data);
+                    
+                    // בדיקת תקשורת
+                    if(e.data.type === 'PING') {
+                        alert('📡 בדיקת תקשורת עברה בהצלחה! אפשר להתחיל לעבוד.');
+                        return;
+                    }
+
+                    // פקודת חיפוש
                     if(e.data.type === 'SEARCH_ADDRESS') {
                         const address = e.data.text;
-                        const input = document.getElementById('txtSearch') || document.querySelector('input[type="text"]');
-                        const btn = document.querySelector('.search-btn') || document.querySelector('#btnSearch');
+                        
+                        // ניסיון למצוא את שורת החיפוש בכמה דרכים
+                        const input = document.getElementById('txtSearch') || 
+                                      document.querySelector('input[placeholder*="כתובת"]') ||
+                                      document.querySelector('.search-input');
+                        
+                        const btn = document.querySelector('#btnSearch') || 
+                                    document.querySelector('.search-btn');
                         
                         if(input && btn) {
+                            // הזנה אגרסיבית
                             input.value = address;
+                            input.focus();
                             input.dispatchEvent(new Event('input', {bubbles:true}));
                             input.dispatchEvent(new Event('change', {bubbles:true}));
-                            setTimeout(() => btn.click(), 500);
+                            
+                            // לחיצה
+                            setTimeout(() => {
+                                btn.click();
+                                console.log('Searching for:', address);
+                            }, 500);
+                        } else {
+                            alert('❌ הבוט לא מצא את שורת החיפוש. האם האתר השתנה?');
                         }
                     }
                 });
 
-                // 2. צייד הבועות (Scraper)
+                // 4. שאיבת מידע מהבועה
                 const observer = new MutationObserver(() => {
                     const popup = document.querySelector('.esri-popup__content');
-                    if(popup && popup.innerText.length > 10 && !popup.dataset.scraped) {
+                    if(popup && popup.innerText.length > 5 && !popup.dataset.scraped) {
                         popup.dataset.scraped = "true";
                         const cleanText = popup.innerText.replace(/\\s+/g, ' ').trim();
                         
-                        // שליחה חזרה לדאשבורד
+                        // שליחה
                         window.opener.postMessage({type: 'DATA_EXTRACTED', payload: cleanText}, '*');
                         
-                        // חיווי ויזואלי במפה
+                        // חיווי
                         const badge = document.createElement('div');
-                        badge.innerText = '✅ נשלח לדאשבורד';
-                        badge.style.cssText = 'position:fixed; top:80px; right:10px; background:#28a745; color:white; padding:10px; z-index:99999; border-radius:5px; font-weight:bold; box-shadow:0 2px 10px rgba(0,0,0,0.3);';
+                        badge.innerText = '✅ נשלח!';
+                        badge.style.cssText = 'position:fixed; top:100px; right:20px; background:#28a745; color:white; padding:15px; z-index:99999; border-radius:8px; font-weight:bold; font-size:18px; box-shadow:0 4px 15px rgba(0,0,0,0.3);';
                         document.body.appendChild(badge);
-                        setTimeout(() => badge.remove(), 3000);
+                        setTimeout(() => badge.remove(), 2000);
                     }
                 });
                 observer.observe(document.body, {childList: true, subtree: true});
+
             })();
         `;
         
-        // קידוד הבוט ללינק
+        // יצירת הקישור לגרירה
         document.getElementById('bookmarklet-link').href = 'javascript:' + encodeURIComponent(botCode);
 
-        // --- לוגיקה של הדאשבורד ---
+        // --- לוגיקה של האתר ---
         let govMapWindow = null;
         let addresses = [];
         let currentProcessIndex = -1;
 
         function openGovMapWindow() {
-            govMapWindow = window.open('https://www.govmap.gov.il/?bot=true', 'govmap_worker');
+            // שימוש בפרמטרים כדי לוודא שהחלון נפתח כחלון משני ולא כטאב מנותק
+            govMapWindow = window.open('https://www.govmap.gov.il/?app=dashboard', 'govmap_window');
+        }
+
+        function testConnection() {
+            if(!govMapWindow || govMapWindow.closed) {
+                alert("החלון סגור! תפתח אותו קודם.");
+                return;
+            }
+            govMapWindow.postMessage({type: 'PING'}, '*');
         }
 
         function loadAddresses() {
@@ -163,7 +215,7 @@
                 addresses.push({ id: index, original: line.trim(), data: '', status: 'waiting' });
                 const tr = document.createElement('tr');
                 tr.id = `row-${index}`;
-                tr.innerHTML = `<td>${index + 1}</td><td>${line}</td><td class="status">ממתין</td><td class="extracted-data">-</td><td><button onclick="sendToMap(${index})">📡 חפש</button></td>`;
+                tr.innerHTML = `<td>${index + 1}</td><td>${line}</td><td class="status">ממתין</td><td class="extracted-data">-</td><td><button class="action-btn" style="background:#007bff; color:white;" onclick="sendToMap(${index})">📡 חפש</button></td>`;
                 tbody.appendChild(tr);
             });
             if(addresses.length > 0) document.getElementById('exportBtn').style.display = 'inline-block';
@@ -171,7 +223,7 @@
 
         function sendToMap(index) {
             if (!govMapWindow || govMapWindow.closed) {
-                alert("חלון GovMap נסגר! פתח אותו מחדש והפעל את הבוט.");
+                alert("GovMap נסגר. פתח אותו מחדש וחבר את הבוט.");
                 document.getElementById('connection-status').innerText = "🔴 מנותק";
                 document.getElementById('connection-status').style.background = "#dc3545";
                 return;
@@ -180,43 +232,39 @@
             currentProcessIndex = index;
             const address = addresses[index].original.replace(/,/g, ' ');
 
-            // עדכון UI
+            // UI update
             document.querySelectorAll('tr').forEach(r => r.style.background = 'white');
             const row = document.getElementById(`row-${index}`);
             row.style.backgroundColor = '#fff3cd';
             row.querySelector('.status').innerText = '⏳ נשלח...';
 
-            // שליחת הודעה לחלון השני
+            // Send command
             govMapWindow.postMessage({type: 'SEARCH_ADDRESS', text: address}, '*');
         }
 
-        // האזנה להודעות שחוזרות מ-GovMap
+        // Listener for incoming messages
         window.addEventListener('message', (e) => {
-            // 1. זיהוי חיבור ראשוני
             if (e.data.type === 'BOT_CONNECTED') {
                 const status = document.getElementById('connection-status');
-                status.innerText = "🟢 מחובר לבוט";
+                status.innerText = "🟢 מחובר ומוכן לעבודה!";
                 status.style.background = "#28a745";
-                govMapWindow = e.source; // שמירת רפרנס לחלון
+                govMapWindow = e.source;
             }
 
-            // 2. קבלת נתונים
             if (e.data.type === 'DATA_EXTRACTED') {
                 if (currentProcessIndex === -1) return;
-
                 const data = e.data.payload;
                 const row = document.getElementById(`row-${currentProcessIndex}`);
                 
-                row.querySelector('.status').innerHTML = '<span class="status-done">✅ הושלם</span>';
+                row.querySelector('.status').innerHTML = '<span class="status-done">✅ נשמר</span>';
                 row.querySelector('.extracted-data').innerText = data.substring(0, 50) + '...';
                 row.style.backgroundColor = '#d4edda';
-                
                 addresses[currentProcessIndex].data = data;
                 
                 new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3').play().catch(()=>{});
             }
         });
-
+        
         function exportToCSV() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFFכתובת,מידע\n";
             addresses.forEach(addr => {
@@ -231,3 +279,4 @@
     </script>
 </body>
 </html>
+
