@@ -107,7 +107,7 @@
         <h3>📘 מדריך למשתמש</h3>
         <div class="step">
             <span class="step-icon">1️⃣</span> הזן כתובות בפורמט:<br>
-            <b>רחוב | מספר | עיר</b>
+            <b>רחוב, מספר, עיר</b>
         </div>
         <div class="step">
             <span class="step-icon">2️⃣</span> לחץ על "טען כתובות"
@@ -128,8 +128,8 @@
         <p>שלום, הכינו את האצבעות 👆. המערכת מוכנה לעבודה.</p>
 
         <div class="input-area">
-            <label>הזן רשימת כתובות (כל כתובת בשורה חדשה):</label>
-            <textarea id="addressInput" placeholder="הרצל | 15 | תל אביב&#10;ז'בוטינסקי | 2 | רמת גן"></textarea>
+            <label>הזן רשימת כתובות (הפרדה עם פסיקים):</label>
+            <textarea id="addressInput" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, רמת גן"></textarea>
             <button onclick="loadAddresses()">טען כתובות לטבלה</button>
         </div>
 
@@ -167,9 +167,9 @@
             addresses = [];
 
             lines.forEach((line, index) => {
-                // ולידציה בסיסית
-                if (!line.includes('|')) {
-                    alert(`שורה לא תקינה: ${line}\nחייב להכיל מפריד "|"`);
+                // ולידציה - בדיקה שיש פסיק
+                if (!line.includes(',')) {
+                    alert(`שורה לא תקינה: ${line}\nחייב להכיל פסיק "," להפרדה`);
                     return;
                 }
 
@@ -202,8 +202,8 @@
             row.querySelector('.status').innerText = '⏳ בטיפול...';
             row.style.backgroundColor = '#fff3cd';
 
-            // ניקוי הסימנים "|" כדי ש-GovMap יבין
-            const searchString = address.replace(/\|/g, ' '); 
+            // החלפת פסיקים ברווחים כדי ש-GovMap יבין את החיפוש
+            const searchString = address.replace(/,/g, ' '); 
             
             // פתיחת חלון חדש
             window.open(`https://www.govmap.gov.il/?q=${encodeURIComponent(searchString)}`, '_blank');
@@ -225,7 +225,7 @@
             // עדכון הטבלה
             const row = document.getElementById(`row-${currentProcessIndex}`);
             row.querySelector('.status').innerHTML = '<span class="status-done">✅ הושלם</span>';
-            row.querySelector('.extracted-data').innerText = data.latestData.substring(0, 50) + '...'; // הצצה למידע
+            row.querySelector('.extracted-data').innerText = data.latestData.substring(0, 50) + '...'; 
             row.style.backgroundColor = '#d4edda';
 
             // שמירת המידע באובייקט
@@ -235,19 +235,20 @@
             // סיום תהליך נוכחי
             currentProcessIndex = -1;
             
-            // צליל הצלחה קטן (אופציונלי)
+            // צליל הצלחה
             new Audio('https://freesound.org/data/previews/171/171671_2437358-lq.mp3').play().catch(()=>({}));
         });
 
         // 4. ייצוא ל-CSV
         function exportToCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM לעברית
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
             csvContent += "כתובת מקורית,מידע שנשלף\n";
             
             addresses.forEach(addr => {
-                // ניקוי פסיקים כדי לא לשבור את ה-CSV
+                // ניקוי ירידות שורה ופסיקים מהמידע כדי לא לשבור את ה-CSV
                 const safeData = addr.data.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, ";");
-                csvContent += `${addr.original},"${safeData}"\n`;
+                const safeAddress = addr.original.replace(/,/g, " "); // שלא ישבור עמודות
+                csvContent += `${safeAddress},"${safeData}"\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -258,7 +259,6 @@
             link.click();
         }
 
-        // בדיקה ראשונית שהקוד רץ
         console.log("Dashboard Loaded");
     </script>
 </body>
