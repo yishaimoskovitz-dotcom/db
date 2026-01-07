@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovMap Pro - V6 Stable</title>
+    <title>GovMap Pro - V7 Force</title>
     <style>
         :root { --primary: #0044cc; --success: #28a745; --bg: #f4f6f9; --warning: #ffc107; --danger: #dc3545; }
         body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); margin: 0; display: flex; height: 100vh; }
@@ -12,15 +12,14 @@
         .step-num { position: absolute; top: -10px; right: -10px; background: var(--primary); color: white; width: 25px; height: 25px; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold; }
         
         #bookmarklet-link {
-            display: block; background: #6610f2; color: white; text-decoration: none; padding: 12px;
-            text-align: center; border-radius: 6px; font-weight: bold; border: 2px dashed #bba1ea; cursor: grab; margin-top: 10px;
+            display: block; background: #000; color: #0f0; text-decoration: none; padding: 12px;
+            text-align: center; border-radius: 6px; font-weight: bold; border: 2px dashed #0f0; cursor: grab; margin-top: 10px; font-family: monospace;
         }
         
         table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 0.9rem; }
         th, td { padding: 10px; text-align: right; border-bottom: 1px solid #eee; }
         th { background: #fafafa; font-weight: 600; position: sticky; top: 0; }
         .status-done { color: var(--success); font-weight: bold; }
-        .pop-stats { font-size: 0.85rem; color: #555; background: #fdfdfe; padding: 2px 5px; border-radius: 4px; border: 1px solid #eee; }
         
         #connection-status { 
             position: fixed; bottom: 20px; left: 20px; background: #dc3545; color: white; 
@@ -35,41 +34,33 @@
 <body>
 
     <div class="sidebar">
-        <h3>📘 הוראות (V6 יציב)</h3>
+        <h3>📘 הוראות (V7)</h3>
         
         <div class="step">
             <div class="step-num">1</div>
             <strong>גרירת הבוט</strong>
-            מחק את הישן וגרור את זה:
-            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V6 (יציב)</a>
+            מחק את הישן וגרור:
+            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V7 (כוחני)</a>
         </div>
 
         <div class="step">
             <div class="step-num">2</div>
-            <strong>פתיחה נקייה</strong>
-            <button class="action-btn btn-open" onclick="openGovMapWindow()">🌍 פתח GovMap</button>
-            <p style="font-size:0.85rem; margin-top:5px; color:#d63384;">
-                * הקישור תוקן כדי למנוע את הקריסה.
-            </p>
-        </div>
-
-        <div class="step">
-            <div class="step-num">3</div>
-            <strong>הדלקת שכבות וחיבור</strong>
-            בחלון המפה:<br>
-            1. הדלק שכבות (נדל"ן/גושים).<br>
-            2. לחץ על הבוט במועדפים.<br>
-            3. וודא שכתוב למטה "מחובר".
+            <strong>עבודה</strong>
+            1. פתח חלון GovMap.<br>
+            2. הדלק שכבות.<br>
+            3. לחץ על הבוט.<br>
+            4. שלח כתובת וחפש קופסה כחולה על המפה.
         </div>
     </div>
 
     <div style="flex: 1; padding: 30px; overflow-y: auto;">
-        <h1>מערכת משולבת V6</h1>
+        <h1>מערכת משולבת V7</h1>
         
         <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <label style="font-weight:bold;">הזן כתובות:</label>
             <textarea id="addressInput" style="width:100%; height:100px; margin:10px 0; padding:10px; border:1px solid #ccc;" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, בני ברק"></textarea>
-            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען וחשב נתונים</button>
+            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען נתונים</button>
+            <button class="action-btn btn-open" onclick="openGovMapWindow()" style="width:auto; margin-right:10px;">🌍 פתח GovMap</button>
         </div>
 
         <table id="resultsTable">
@@ -98,7 +89,6 @@
             "ירושלים": 3.8, "תל אביב - יפו": 2.2, "חיפה": 2.4, "ראשון לציון": 2.9,
             "פתח תקווה": 3.0, "אשדוד": 3.2, "נתניה": 3.0, "באר שבע": 2.9,
             "בני ברק": 4.8, "חולון": 2.8, "רמת גן": 2.3, "רחובות": 2.9
-            // ניתן להוסיף עוד ערים כאן...
         };
 
         function getCityStats(address) {
@@ -109,66 +99,82 @@
             return { city: city, avg: 0 };
         }
 
-        // === בוט V6 ===
+        // === בוט V7: הגרסה הכוחנית ===
         const botCode = `
             (function(){
-                // בדיקת סביבה
-                if(location.hostname.indexOf('govmap')===-1){alert('❌ הבוט עובד רק ב-GovMap!');return;}
-                if(!window.opener){alert('❌ נותק הקשר לאתר. יש לפתוח מחדש.');return;}
+                if(location.hostname.indexOf('govmap')===-1){alert('❌ רק ב-GovMap!');return;}
+                if(!window.opener){alert('❌ אין חיבור לאתר.');return;}
                 
                 window.opener.postMessage({type:'BOT_CONNECTED'},'*');
-                alert('✅ בוט מחובר!\\n\\n1. וודא שהשכבות דלוקות.\\n2. חזור לאתר ושלח כתובות.');
                 
-                // פונקציית חיפוש משופרת
-                function simulateSearch(text) {
-                    console.log("🤖 מחפש את:", text);
+                // חיווי על המסך
+                let statusBox = document.createElement('div');
+                statusBox.style.cssText = 'position:fixed; bottom:10px; left:10px; background:black; color:#0f0; padding:10px; z-index:99999; font-family:monospace; border-radius:5px;';
+                statusBox.innerText = '🤖 בוט V7 מחובר וממתין...';
+                document.body.appendChild(statusBox);
+
+                // פונקציית חיפוש ברוטאלית
+                function bruteForceSearch(text) {
+                    statusBox.innerText = '🤖 מנסה לחפש: ' + text;
+                    statusBox.style.background = 'blue';
+                    statusBox.style.color = 'white';
                     
-                    // רשימת מזהים אפשריים (מעודכן ל-2024/25)
-                    let inputs = [
-                        document.getElementById('txtSearch'),
-                        document.querySelector('#txtSearch'),
-                        document.querySelector('input[placeholder*="כתובת"]'),
-                        document.querySelector('.search-input'),
-                        document.querySelector('input[role="combobox"]'),
-                        document.querySelector('input[type="text"]') 
-                    ];
+                    // מציאת כל האינפוטים
+                    let allInputs = Array.from(document.querySelectorAll('input'));
                     
-                    // סינון - לוקח את הראשון שקיים ואינו מוסתר
-                    let input = inputs.find(i => i && i.offsetParent !== null);
-                    
-                    if(input) {
-                        // ניקוי והכנה
-                        input.click();
-                        input.value = '';
-                        input.focus();
+                    // סינון אינפוטים רלוונטיים
+                    let candidates = allInputs.filter(i => {
+                        let score = 0;
+                        let placeholder = (i.placeholder || '').toLowerCase();
+                        let id = (i.id || '').toLowerCase();
                         
-                        // הקלדה
+                        if(placeholder.includes('כתובת')) score += 10;
+                        if(placeholder.includes('גוש')) score += 5;
+                        if(id.includes('search')) score += 5;
+                        if(i.type === 'text' || i.type === 'search') score += 1;
+                        if(i.offsetParent === null) score = -100; // מוסתר
+                        
+                        return score > 0;
+                    });
+                    
+                    candidates.sort((a,b) => b.placeholder?.includes('כתובת') ? 1 : -1);
+
+                    if(candidates.length > 0) {
+                        let input = candidates[0]; // קח את הכי טוב
+                        console.log("Found input:", input);
+                        
+                        // ביצוע פעולות
+                        input.click();
+                        input.focus();
                         input.value = text;
                         input.dispatchEvent(new Event('input', {bubbles:true}));
                         input.dispatchEvent(new Event('change', {bubbles:true}));
                         
-                        // לחיצה
                         setTimeout(() => {
-                            // מנסה ללחוץ אנטר
+                            // שליחת אנטר
                             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
                             
-                            // מנסה ללחוץ על כפתור החיפוש אם קיים
-                            let btn = document.querySelector('#btnSearch') || document.querySelector('.search-btn');
-                            if(btn) btn.click();
-                        }, 400);
-                        
+                            // חיפוש כפתור זכוכית מגדלת
+                            let btns = Array.from(document.querySelectorAll('button, div[role="button"]'));
+                            let searchBtn = btns.find(b => b.id.includes('btnSearch') || b.className.includes('search'));
+                            if(searchBtn) searchBtn.click();
+                            
+                            statusBox.innerText = '✅ הפקודה נשלחה';
+                            setTimeout(() => statusBox.style.background = 'black', 1000);
+                        }, 500);
                     } else {
-                        alert('❌ שגיאה: הבוט לא מצליח לאתר את תיבת החיפוש. נסה לרענן את העמוד.');
+                        statusBox.innerText = '❌ לא נמצא שדה חיפוש!';
+                        statusBox.style.background = 'red';
                     }
                 }
 
                 window.addEventListener('message', function(e){
                     if(e.data.type === 'SEARCH_ADDRESS') {
-                        simulateSearch(e.data.text);
+                        bruteForceSearch(e.data.text);
                     }
                 });
 
-                // מאזין לבועות מידע
+                // Scraper
                 const obs = new MutationObserver(() => {
                     let p = document.querySelector('.esri-popup__content');
                     if(p && p.innerText.length > 5 && !p.dataset.scraped) {
@@ -194,7 +200,6 @@
         let currentProcessIndex = -1;
 
         function openGovMapWindow() {
-            // תיקון: פתיחת הכתובת הנקייה בלי פרמטרים שגורמים לקריסה
             govMapWindow = window.open('https://www.govmap.gov.il/', 'govmap_window');
         }
 
