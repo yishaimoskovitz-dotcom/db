@@ -32,7 +32,7 @@
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-      /* --- עיצוב מודגש למשבצות הכתיבה --- */
+      /* --- עיצוב מודגש למשבצות הכתיבה (Black Border) --- */
       .input-field { 
         @apply w-full bg-white border-2 border-black rounded-lg px-4 py-3 outline-none text-sm font-medium text-slate-900 transition-all;
       }
@@ -42,7 +42,7 @@
       }
 
       .input-field:focus {
-        @apply bg-white ring-4 ring-indigo-500/20 border-black;
+        @apply bg-white ring-2 ring-indigo-500/20 border-black shadow-lg;
       }
 
       .input-field::placeholder {
@@ -50,11 +50,11 @@
       }
       
       .input-label { 
-        @apply block text-sm font-bold text-slate-800 mb-2 uppercase tracking-wide; 
+        @apply block text-sm font-bold text-slate-800 mb-2; /* ריווח בין כותרת לשדה */
       }
       
       .input-group {
-        @apply mb-6; /* רווח בין שדה לשדה */
+        @apply mb-5; /* ריווח בין קבוצות */
       }
 
       /* Toast */
@@ -72,17 +72,19 @@
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       
-      // הכתובת המעודכנת
+      // הכתובת המעודכנת שלך
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
       
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
-      // --- הגדרת העמודות והאפשרויות ---
+      // אפשרויות הנושא (משמשות גם באשף הבקשות)
+      const TOPIC_OPTIONS = ['שיווק', 'כספים', 'משאבי אנוש', 'תפעול', 'טכנולוגיה', 'כללי'];
+
       const COLUMNS = [
-        { idx: 0, label: 'נושא', type: 'select', options: ['שיווק', 'כספים', 'משאבי אנוש', 'תפעול', 'טכנולוגיה', 'כללי'], required: true },
+        { idx: 0, label: 'נושא', type: 'select', options: TOPIC_OPTIONS, required: true },
         { idx: 1, label: 'תת נושא', type: 'text', required: true },
         { idx: 2, label: 'אחראי', type: 'text' },
-        { idx: 3, label: 'אימייל אחראי', type: 'email' }, // סוג email מפעיל אוטומטית מילוי בדפדפן
+        { idx: 3, label: 'אימייל אחראי', type: 'email' },
         { idx: 4, label: 'תיאור מקור', type: 'textarea' },
         { idx: 5, label: 'שם המקור', type: 'text' },
         { idx: 6, label: 'טבלה מטויבת', type: 'text' },
@@ -145,20 +147,24 @@
       };
 
       // --- HELPERS ---
+      // חישוב התראות חכם
       const getNotifications = (data, userEmail) => {
          const notifications = [];
+         
          data.forEach(item => {
-            const itemName = item.values[1] || item.values[0];
-            const isMyItem = item.values[3] === userEmail;
+            const itemName = item.values[1] || item.values[0]; // שם הדוח או הנושא
+            const isMyItem = item.values[3] === userEmail; // האם אני בעל הפריט
             
             let followers = [];
             if (item.interestedUsers) followers = item.interestedUsers.split(",").filter(Boolean);
             const isFollowing = followers.includes(userEmail);
 
+            // 1. התראות לבעלים: מישהו עוקב אחרי הבקשה שלי
             if (isMyItem) {
                followers.forEach(f => {
                   if (f !== userEmail) notifications.push({ type: 'follow', user: f, item: itemName, date: null });
                });
+               // התראות על תגובות
                if (item.comments) {
                   try {
                      const comments = JSON.parse(item.comments);
@@ -168,16 +174,20 @@
                   } catch(e) {}
                }
             }
+
+            // 2. התראות לעוקב: הבקשה הפכה למקור (Closed)
+            // עמודה 18 היא סטטוס (אינדקס ב-Excel הוא S). בקוד שלנו זה item.status
             if (isFollowing && item.status === 'Closed') {
-               notifications.push({ type: 'status', user: 'המערכת', item: itemName, text: 'הבקשה הפכה למקור נתונים!' });
+               notifications.push({ type: 'status', user: 'המערכת', item: itemName, text: 'הבקשה אושרה והפכה למקור נתונים!' });
             }
          });
+         
          return notifications;
       };
 
       // --- COMPONENTS ---
 
-      // Login Component - With Autocomplete
+      // Login Component
       const LoginPage = ({ onLogin, isChecking }) => {
          const [email, setEmail] = useState("");
          return (
@@ -185,31 +195,20 @@
                <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center fade-in border border-slate-100">
                   <div className="bg-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200"><Icon name="Database" size={40} className="text-white" /></div>
                   <h1 className="text-3xl font-bold mb-2 text-slate-800">Analyst Data Hub</h1>
-                  <p className="text-slate-500 mb-8">ברוכים הבאים למאגר המידע המרכזי.<br/>נא להזדהות כדי להמשיך.</p>
+                  <p className="text-slate-500 mb-8">ברוכים הבאים למאגר המידע הארגוני.<br/>הזדהה כדי להתחיל.</p>
                   <form onSubmit={(e) => { e.preventDefault(); if(email.includes('@')) onLogin(email); }} className="space-y-4">
                      <div className="relative">
-                        <input 
-                           type="email" 
-                           name="email" 
-                           id="login-email"
-                           autoComplete="email" 
-                           placeholder="הכנס את המייל שלך..." 
-                           className="input-field pl-4 pr-12 py-4 text-lg bg-slate-50" 
-                           value={email} 
-                           onChange={e => setEmail(e.target.value)} 
-                           required 
-                           autoFocus 
-                        />
+                        <input type="email" name="email" autoComplete="email" placeholder="הכנס את המייל שלך..." className="input-field pl-4 pr-12 py-4 text-lg bg-slate-50" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Mail" size={20} /></div>
                      </div>
                      <button disabled={isChecking} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-2">{isChecking ? <Icon name="Loader2" className="spin" /> : "כניסה למערכת"}</button>
                   </form>
-                  <p className="text-xs text-slate-400 mt-6">* הכניסה מורשית לבעלי הרשאת עריכה בקובץ בלבד.</p>
                </div>
             </div>
          );
       };
 
+      // Notifications Modal
       const NotificationsModal = ({ onClose, notifications }) => {
          return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm fade-in" onClick={onClose}>
@@ -229,7 +228,11 @@
                                     <Icon name={n.type==='follow'?'UserPlus':n.type==='status'?'CheckCircle':'MessageCircle'} size={18} />
                                  </div>
                                  <div>
-                                    <p className="text-sm text-slate-800 leading-relaxed">{n.type==='status' ? <span className="font-bold text-emerald-600">עדכון סטטוס: </span> : <span className="font-bold">{n.user.split('@')[0]}</span>} {n.type==='follow'?' עוקב אחרי ':' הגיב על '} <span className="font-bold text-indigo-600">{n.item}</span></p>
+                                    <p className="text-sm text-slate-800 leading-relaxed">
+                                       {n.type==='status' ? <span className="font-bold text-emerald-600">עדכון סטטוס: </span> : <span className="font-bold">{n.user.split('@')[0]}</span>} 
+                                       {n.type==='follow'?' עוקב אחרי ':' הגיב על '} 
+                                       <span className="font-bold text-indigo-600">{n.item}</span>
+                                    </p>
                                     {n.text && <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100">"{n.text}"</p>}
                                  </div>
                               </div>
@@ -242,7 +245,7 @@
          );
       };
 
-      const Card = ({ item, onClick, index }) => {
+      const Card = ({ item, onClick, index, userEmail }) => {
         const domain = item.values[0] || "כללי";
         const subTopic = item.values[1] || "ללא כותרת";
         const owner = item.values[2] || "לא צוין";
@@ -251,6 +254,8 @@
         let comments = 0;
         try { comments = item.comments ? JSON.parse(item.comments).length : 0; } catch (e) { comments = 0; }
         const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean).length : 0;
+        const followersList = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
+        const isFollowing = followersList.includes(userEmail);
 
         let badgeStyle = isRequest ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-slate-100 text-slate-600 border-slate-200";
         let cardStyle = isRequest ? "border-orange-200 bg-orange-50/10" : "border-slate-200 bg-white";
@@ -264,18 +269,21 @@
 
         return (
           <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} 
-               className={`group fade-in rounded-2xl border shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${cardStyle}`}>
+               className={`group fade-in rounded-2xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full overflow-hidden relative ${cardStyle}`}>
             <div className={`h-1.5 w-full ${barColor}`}></div>
             <div className="p-6 flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
                 <span className={`text-[11px] font-bold px-3 py-1 rounded-full border tracking-wide uppercase ${badgeStyle}`}>{domain}</span>
                 <div className="flex gap-2 text-slate-400 text-[10px] items-center">
-                   {(followers > 0 || comments > 0) && <div className="flex gap-3 bg-white/80 backdrop-blur px-2.5 py-1 rounded-lg border border-slate-100 shadow-sm">{followers > 0 && <span className="flex items-center gap-1"><Icon name="Bell" size={12} /> {followers}</span>}{comments > 0 && <span className="flex items-center gap-1"><Icon name="MessageSquare" size={12} /> {comments}</span>}</div>}
+                   {/* כפתור מעקב בתוך הכרטיס (אופציונלי, אבל ביקשת שזה יופיע רק בבקשות) */}
+                   {isRequest && (followers > 0 || comments > 0) && <div className="flex gap-3 bg-white/80 backdrop-blur px-2.5 py-1 rounded-lg border border-slate-100 shadow-sm">{followers > 0 && <span className="flex items-center gap-1"><Icon name="Bell" size={12} /> {followers}</span>}{comments > 0 && <span className="flex items-center gap-1"><Icon name="MessageSquare" size={12} /> {comments}</span>}</div>}
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3 group-hover:text-indigo-600 transition-colors">{subTopic}</h3>
+              <h3 className="text-lg font-bold text-slate-800 leading-snug mb-3">{subTopic}</h3>
               <div className="mt-auto pt-5 border-t border-slate-200/50 flex items-center justify-between text-slate-500 text-sm">
                  <div className="flex items-center gap-2"><div className={`p-2 rounded-full ${isRequest?'bg-orange-100 text-orange-600':'bg-slate-100 text-slate-600'}`}><Icon name={isRequest?"CircleHelp":"User"} size={14} /></div><span className="truncate max-w-[120px] font-medium">{owner}</span></div>
+                 {/* אינדיקציה אם אני עוקב */}
+                 {isRequest && isFollowing && <div className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold flex items-center gap-1"><Icon name="Check" size={10}/> במעקב</div>}
               </div>
             </div>
           </div>
@@ -295,10 +303,7 @@
                   <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
                      {COLUMNS.map((col) => {
                         if (col.auto) return null; 
-                        
-                        // זיהוי שדה מייל והוספת Autocomplete
                         const isEmail = col.type === 'email';
-                        
                         return (
                            <div key={col.idx} className="input-group">
                               <label className="input-label">{col.label}</label>
@@ -343,9 +348,8 @@
          const [comment, setComment] = useState("");
          const [editData, setEditData] = useState([...item.values]); 
          const isRequest = item.values[0] === "בקשת מידע";
-         
          const canEdit = userEmail === MANAGER_EMAIL || userEmail === item.values[3];
-         let commentsList = []; try { commentsList = item.comments ? JSON.parse(item.comments) : []; } catch (e) { commentsList = []; }
+         let commentsList = []; try { commentsList = item.comments ? JSON.parse(item.comments) : []; } catch (e) {}
          const followers = item.interestedUsers ? item.interestedUsers.split(",").filter(Boolean) : [];
          const isFollowing = followers.includes(userEmail);
 
@@ -377,9 +381,12 @@
                      <div><div className="flex gap-2 mb-2"><span className="text-xs font-bold px-2 py-1 rounded bg-slate-100 border border-slate-200">{item.values[0]}</span>{isRequest && <span className="text-xs text-orange-600 font-bold animate-pulse">בקשה</span>}</div><h2 className="text-2xl font-bold text-slate-800">{item.values[1]}</h2></div>
                      <div className="flex gap-2">
                         {canEdit && <button onClick={()=>setMode('edit')} className="p-2 border rounded-full hover:bg-slate-50 transition" title="ערוך"><Icon name="Edit3" size={18}/></button>}
-                        <button onClick={handleFollow} className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${isFollowing ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                           {isFollowing ? <><Icon name="Check" size={16}/> במעקב</> : "עקוב"}
-                        </button>
+                        {/* כפתור מעקב - רק אם זו בקשה */}
+                        {isRequest && (
+                           <button onClick={handleFollow} className={`px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2 ${isFollowing ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                              {isFollowing ? <><Icon name="Check" size={16}/> במעקב</> : "עקוב"}
+                           </button>
+                        )}
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition"><Icon name="X" size={24}/></button>
                      </div>
                   </div>
@@ -414,13 +421,22 @@
       const RequestWizard = ({ onClose, onRefresh, setToast, userEmail }) => {
          const [step, setStep] = useState(1);
          const [isSubmitting, setIsSubmitting] = useState(false);
-         const [reqData, setReqData] = useState({ desc: '', office: '', name: '', email: userEmail || '' });
+         const [reqData, setReqData] = useState({ desc: '', topic: '', name: '', email: userEmail || '' });
 
          const handleSubmit = async (e) => {
             e.preventDefault(); setIsSubmitting(true);
             const values = Array(16).fill("");
-            values[0] = "בקשת מידע"; values[1] = reqData.desc; values[2] = reqData.name; values[3] = reqData.email; values[5] = reqData.office; values[15] = new Date().toLocaleDateString('he-IL'); 
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values }) }); setToast("נפתח בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch(e) { alert("שגיאה"); } finally { setIsSubmitting(false); }
+            // עמודה 0 נשארת "בקשת מידע" כדי שהמערכת תדע שזו בקשה
+            values[0] = "בקשת מידע"; 
+            values[1] = reqData.desc; 
+            values[2] = reqData.name; 
+            values[3] = reqData.email; 
+            // את הנושא האמיתי שהמשתמש בחר נשמור בעמודה 5 (שם המקור/משרד) או כל עמודה פנויה אחרת שמוצגת
+            values[5] = reqData.topic; 
+            values[15] = new Date().toLocaleDateString('he-IL'); 
+
+            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', values }) }); 
+            setToast("נפתח בהצלחה!"); setTimeout(() => { onRefresh(); onClose(); }, 500); } catch(e) { alert("שגיאה"); } finally { setIsSubmitting(false); }
          };
 
          return (
@@ -428,13 +444,34 @@
                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e=>e.stopPropagation()}>
                   <div className="bg-slate-900 p-8 text-white text-center relative"><h2 className="text-2xl font-bold relative z-10">{step===1?'בדיקת קטלוג':step===2?'בדיקת רשת':'פתיחת בקשה'}</h2><button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-white/20 rounded-full transition"><Icon name="X" size={20}/></button></div>
                   <div className="p-8 overflow-y-auto">
-                     {step===1 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם בדקת בקטלוג?</h3><div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">בדקתי, אין</button></div></div>}
-                     {step===2 && <div className="text-center space-y-6"><h3 className="text-xl font-bold text-slate-800">האם חיפשת באינטרנט?</h3><div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400 hover:text-slate-600 transition">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-xl font-bold shadow-lg hover:bg-cyan-700 transition">חיפשתי, אין</button></div></div>}
-                     {step===3 && <div className="space-y-6"><div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">שלח מייל לאיש הקשר ופתח כאן פנייה.</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer bg-white border border-indigo-100 p-2 rounded-lg hover:shadow-md transition" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div><form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="input-group"><label className="input-label">אילו נתונים?</label><input required className="input-field" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div>
-                        <div className="input-group"><label className="input-label">לאיזה משרד פונים?</label><input required className="input-field" value={reqData.office} onChange={e=>setReqData({...reqData, office:e.target.value})} /></div>
-                        <div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" name="email" autoComplete="email" required className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div>
-                        <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-700 mt-2 flex justify-center gap-2 transition">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button></form></div>}
+                     {step===1 && <div className="text-center space-y-6">
+                        <div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Library" size={40} className="text-indigo-600"/></div>
+                        <h3 className="text-xl font-bold text-slate-800">האם ווידאת שהנתונים לא נמצאים בקטלוג (כולל בדיקה בבקשות)?</h3>
+                        <div className="flex gap-3 pt-4"><button onClick={onClose} className="flex-1 py-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-slate-50 transition">בודק שוב...</button><button onClick={()=>setStep(2)} className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition">בדקתי, אין</button></div>
+                     </div>}
+                     {step===2 && <div className="text-center space-y-6">
+                        <div className="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Globe" size={40} className="text-cyan-600"/></div>
+                        <h3 className="text-xl font-bold text-slate-800">האם ווידאת שהמידע אינו פומבי? אולי הוא נמצא באינטרנט?</h3>
+                        <div className="flex gap-3 pt-4"><button onClick={()=>setStep(1)} className="px-6 py-4 font-bold text-slate-400 hover:text-slate-600 transition">חזור</button><button onClick={()=>setStep(3)} className="flex-1 py-4 bg-cyan-600 text-white rounded-2xl font-bold shadow-lg hover:bg-cyan-700 transition">חיפשתי, אין</button></div>
+                     </div>}
+                     {step===3 && <div className="space-y-6">
+                        <div className="text-center bg-slate-50 p-5 rounded-2xl border border-slate-100"><p className="text-slate-600 font-medium text-sm mb-4">בסדר גמור, שלח מייל לגורמים הרלוונטים בבקשה למקור הנתונים. במקביל נשמח שגם תפתח בקשה ממש כאן למטה, אם צריך עזרה הנה המייל שלי:</p><div className="flex justify-center items-center gap-2 text-indigo-600 cursor-pointer bg-white border border-indigo-100 p-2 rounded-lg hover:shadow-md transition" onClick={()=>{navigator.clipboard.writeText(MANAGER_EMAIL); alert("הועתק!");}}><Icon name="Mail" size={16}/><span className="font-bold text-sm">{MANAGER_EMAIL}</span></div></div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                           <div className="input-group">
+                              <label className="input-label">נושא הבקשה</label>
+                              <div className="relative">
+                                 <select required className="input-field appearance-none cursor-pointer" value={reqData.topic} onChange={e => setReqData({...reqData, topic:e.target.value})}>
+                                    <option value="" disabled>בחר מהרשימה...</option>
+                                    {TOPIC_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                 </select>
+                                 <Icon name="ChevronDown" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                              </div>
+                           </div>
+                           <div className="input-group"><label className="input-label">תיאור הנתונים החסרים</label><input required className="input-field" placeholder="למשל: נתוני תאונות דרכים לפי עיר" value={reqData.desc} onChange={e=>setReqData({...reqData, desc:e.target.value})} /></div>
+                           <div className="grid grid-cols-2 gap-4"><div><label className="input-label">שם מלא</label><input required className="input-field" value={reqData.name} onChange={e=>setReqData({...reqData, name:e.target.value})} /></div><div><label className="input-label">מייל</label><input type="email" name="email" autoComplete="email" required className="input-field" value={reqData.email} onChange={e=>setReqData({...reqData, email:e.target.value})} /></div></div>
+                           <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-700 mt-2 flex justify-center gap-2 transition">{isSubmitting?<Icon name="Loader2" className="spin"/>:<><Icon name="CircleHelp" size={20}/> פתח בקשה</>}</button>
+                        </form>
+                     </div>}
                   </div>
                </div>
             </div>
@@ -501,7 +538,7 @@
                 {isLoading && data.length === 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{[1,2,3,4,5,6].map(i => (<div key={i} className="h-48 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 animate-pulse flex flex-col gap-3"><div className="h-6 bg-slate-100 rounded w-1/3"></div><div className="h-8 bg-slate-200 rounded w-3/4"></div><div className="mt-auto h-4 bg-slate-100 rounded w-1/2"></div></div>))}</div>
                 ) : (
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />))}</div>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} userEmail={userEmail} />))}</div>
                 )}
                 {!isLoading && filteredData.length === 0 && <div className="text-center py-20 text-slate-400"><Icon name="SearchX" size={64} className="mx-auto mb-4 opacity-50"/><p className="text-xl font-medium">לא נמצאו תוצאות</p></div>}
              </div>
