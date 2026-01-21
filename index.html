@@ -1,296 +1,165 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GovMap Pro - V7 Force</title>
-    <style>
-        :root { --primary: #0044cc; --success: #28a745; --bg: #f4f6f9; --warning: #ffc107; --danger: #dc3545; }
-        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); margin: 0; display: flex; height: 100vh; }
-        .sidebar { width: 300px; background: white; padding: 20px; border-left: 1px solid #ddd; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .step { padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.95rem; border: 1px solid #eee; position: relative; }
-        .step-num { position: absolute; top: -10px; right: -10px; background: var(--primary); color: white; width: 25px; height: 25px; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold; }
-        
-        #bookmarklet-link {
-            display: block; background: #000; color: #0f0; text-decoration: none; padding: 12px;
-            text-align: center; border-radius: 6px; font-weight: bold; border: 2px dashed #0f0; cursor: grab; margin-top: 10px; font-family: monospace;
-        }
-        
-        table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-size: 0.9rem; }
-        th, td { padding: 10px; text-align: right; border-bottom: 1px solid #eee; }
-        th { background: #fafafa; font-weight: 600; position: sticky; top: 0; }
-        .status-done { color: var(--success); font-weight: bold; }
-        
-        #connection-status { 
-            position: fixed; bottom: 20px; left: 20px; background: #dc3545; color: white; 
-            padding: 10px 20px; border-radius: 30px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .action-btn { width: 100%; padding: 10px; margin-top: 5px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-open { background: var(--success); color: white; }
-    </style>
-</head>
-<body>
-
-    <div class="sidebar">
-        <h3>📘 הוראות (V7)</h3>
-        
-        <div class="step">
-            <div class="step-num">1</div>
-            <strong>גרירת הבוט</strong>
-            מחק את הישן וגרור:
-            <a id="bookmarklet-link" href="#" onclick="alert('לגרור למעלה!'); return false;">🤖 בוט V7 (כוחני)</a>
-        </div>
-
-        <div class="step">
-            <div class="step-num">2</div>
-            <strong>עבודה</strong>
-            1. פתח חלון GovMap.<br>
-            2. הדלק שכבות.<br>
-            3. לחץ על הבוט.<br>
-            4. שלח כתובת וחפש קופסה כחולה על המפה.
-        </div>
-    </div>
-
-    <div style="flex: 1; padding: 30px; overflow-y: auto;">
-        <h1>מערכת משולבת V7</h1>
-        
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <label style="font-weight:bold;">הזן כתובות:</label>
-            <textarea id="addressInput" style="width:100%; height:100px; margin:10px 0; padding:10px; border:1px solid #ccc;" placeholder="הרצל, 15, תל אביב&#10;ז'בוטינסקי, 2, בני ברק"></textarea>
-            <button onclick="loadAddresses()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer;">טען נתונים</button>
-            <button class="action-btn btn-open" onclick="openGovMapWindow()" style="width:auto; margin-right:10px;">🌍 פתח GovMap</button>
-        </div>
-
-        <table id="resultsTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>כתובת</th>
-                    <th>עיר</th>
-                    <th>נפשות</th>
-                    <th>סטטוס</th>
-                    <th>מידע</th>
-                    <th>פעולה</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <br>
-        <button id="exportBtn" onclick="exportToCSV()" style="background:#17a2b8; color:white; border:none; padding:10px 20px; display:none; border-radius:4px; cursor:pointer;">הורד אקסל</button>
-    </div>
-
-    <div id="connection-status">🔴 מנותק</div>
-
-    <script>
-        // === מילון נתונים (פייתון) ===
-        const CITY_STATS = {
-            "ירושלים": 3.8, "תל אביב - יפו": 2.2, "חיפה": 2.4, "ראשון לציון": 2.9,
-            "פתח תקווה": 3.0, "אשדוד": 3.2, "נתניה": 3.0, "באר שבע": 2.9,
-            "בני ברק": 4.8, "חולון": 2.8, "רמת גן": 2.3, "רחובות": 2.9
-        };
-
-        function getCityStats(address) {
-            let city = address.split(",").pop().trim();
-            for (let key in CITY_STATS) {
-                if (city.includes(key)) return { city: key, avg: CITY_STATS[key] };
-            }
-            return { city: city, avg: 0 };
-        }
-
-        // === בוט V7: הגרסה הכוחנית ===
-        const botCode = `
-            (function(){
-                if(location.hostname.indexOf('govmap')===-1){alert('❌ רק ב-GovMap!');return;}
-                if(!window.opener){alert('❌ אין חיבור לאתר.');return;}
-                
-                window.opener.postMessage({type:'BOT_CONNECTED'},'*');
-                
-                // חיווי על המסך
-                let statusBox = document.createElement('div');
-                statusBox.style.cssText = 'position:fixed; bottom:10px; left:10px; background:black; color:#0f0; padding:10px; z-index:99999; font-family:monospace; border-radius:5px;';
-                statusBox.innerText = '🤖 בוט V7 מחובר וממתין...';
-                document.body.appendChild(statusBox);
-
-                // פונקציית חיפוש ברוטאלית
-                function bruteForceSearch(text) {
-                    statusBox.innerText = '🤖 מנסה לחפש: ' + text;
-                    statusBox.style.background = 'blue';
-                    statusBox.style.color = 'white';
-                    
-                    // מציאת כל האינפוטים
-                    let allInputs = Array.from(document.querySelectorAll('input'));
-                    
-                    // סינון אינפוטים רלוונטיים
-                    let candidates = allInputs.filter(i => {
-                        let score = 0;
-                        let placeholder = (i.placeholder || '').toLowerCase();
-                        let id = (i.id || '').toLowerCase();
-                        
-                        if(placeholder.includes('כתובת')) score += 10;
-                        if(placeholder.includes('גוש')) score += 5;
-                        if(id.includes('search')) score += 5;
-                        if(i.type === 'text' || i.type === 'search') score += 1;
-                        if(i.offsetParent === null) score = -100; // מוסתר
-                        
-                        return score > 0;
-                    });
-                    
-                    candidates.sort((a,b) => b.placeholder?.includes('כתובת') ? 1 : -1);
-
-                    if(candidates.length > 0) {
-                        let input = candidates[0]; // קח את הכי טוב
-                        console.log("Found input:", input);
-                        
-                        // ביצוע פעולות
-                        input.click();
-                        input.focus();
-                        input.value = text;
-                        input.dispatchEvent(new Event('input', {bubbles:true}));
-                        input.dispatchEvent(new Event('change', {bubbles:true}));
-                        
-                        setTimeout(() => {
-                            // שליחת אנטר
-                            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-                            
-                            // חיפוש כפתור זכוכית מגדלת
-                            let btns = Array.from(document.querySelectorAll('button, div[role="button"]'));
-                            let searchBtn = btns.find(b => b.id.includes('btnSearch') || b.className.includes('search'));
-                            if(searchBtn) searchBtn.click();
-                            
-                            statusBox.innerText = '✅ הפקודה נשלחה';
-                            setTimeout(() => statusBox.style.background = 'black', 1000);
-                        }, 500);
-                    } else {
-                        statusBox.innerText = '❌ לא נמצא שדה חיפוש!';
-                        statusBox.style.background = 'red';
-                    }
-                }
-
-                window.addEventListener('message', function(e){
-                    if(e.data.type === 'SEARCH_ADDRESS') {
-                        bruteForceSearch(e.data.text);
-                    }
-                });
-
-                // Scraper
-                const obs = new MutationObserver(() => {
-                    let p = document.querySelector('.esri-popup__content');
-                    if(p && p.innerText.length > 5 && !p.dataset.scraped) {
-                        p.dataset.scraped = "true";
-                        window.opener.postMessage({type:'DATA_EXTRACTED', payload: p.innerText.replace(/\\s+/g,' ').trim()}, '*');
-                        
-                        let b = document.createElement('div');
-                        b.innerText = '✅ נשלח!';
-                        b.style.cssText = 'position:fixed;top:100px;right:20px;background:#28a745;color:white;padding:10px;z-index:9999;border-radius:5px;';
-                        document.body.appendChild(b);
-                        setTimeout(() => b.remove(), 2000);
-                    }
-                });
-                obs.observe(document.body, {childList:true, subtree:true});
-
-            })();
-        `;
-        document.getElementById('bookmarklet-link').href = 'javascript:' + encodeURIComponent(botCode);
-
-        // === לוגיקה של האתר ===
-        let govMapWindow = null;
-        let addresses = [];
-        let currentProcessIndex = -1;
-
-        function openGovMapWindow() {
-            govMapWindow = window.open('https://www.govmap.gov.il/', 'govmap_window');
-        }
-
-        function loadAddresses() {
-            const rawText = document.getElementById('addressInput').value;
-            const lines = rawText.split('\n').filter(line => line.trim() !== '');
-            const tbody = document.querySelector('#resultsTable tbody');
-            tbody.innerHTML = '';
-            addresses = [];
-
-            lines.forEach((line, index) => {
-                const stats = getCityStats(line);
-                const rangeLow = stats.avg > 0 ? (stats.avg - 0.5).toFixed(1) : 0;
-                const rangeHigh = stats.avg > 0 ? (stats.avg + 0.5).toFixed(1) : 0;
-
-                const addrObj = { 
-                    id: index, 
-                    original: line.trim(), 
-                    data: '', 
-                    city: stats.city,
-                    rangeLow: parseFloat(rangeLow),
-                    rangeHigh: parseFloat(rangeHigh)
-                };
-                addresses.push(addrObj);
-                
-                const tr = document.createElement('tr');
-                tr.id = `row-${index}`;
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${line}</td>
-                    <td>${stats.city}</td>
-                    <td>${stats.avg > 0 ? rangeLow + '-' + rangeHigh : '-'}</td>
-                    <td class="status">ממתין</td>
-                    <td class="extracted-data">-</td>
-                    <td><button class="action-btn" style="background:#007bff; color:white;" onclick="sendToMap(${index})">חפש</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-            if(addresses.length > 0) document.getElementById('exportBtn').style.display = 'inline-block';
-        }
-
-        function sendToMap(index) {
-            if (!govMapWindow || govMapWindow.closed) {
-                alert("GovMap סגור!"); return;
-            }
-            currentProcessIndex = index;
-            const address = addresses[index].original.replace(/,/g, ' ');
-            
-            document.querySelectorAll('tr').forEach(r => r.style.background = 'white');
-            const row = document.getElementById(`row-${index}`);
-            row.style.backgroundColor = '#fff3cd';
-            row.querySelector('.status').innerText = '⏳ נשלח...';
-
-            govMapWindow.postMessage({type: 'SEARCH_ADDRESS', text: address}, '*');
-        }
-
-        window.addEventListener('message', (e) => {
-            if (e.data.type === 'BOT_CONNECTED') {
-                const status = document.getElementById('connection-status');
-                status.innerText = "🟢 מחובר!";
-                status.style.background = "#28a745";
-                govMapWindow = e.source;
-            }
-            if (e.data.type === 'DATA_EXTRACTED') {
-                if (currentProcessIndex === -1) return;
-                const data = e.data.payload;
-                const row = document.getElementById(`row-${currentProcessIndex}`);
-                
-                row.querySelector('.status').innerHTML = '<span class="status-done">✅ נשמר</span>';
-                row.querySelector('.extracted-data').innerText = data.substring(0, 40) + '...';
-                row.style.backgroundColor = '#d4edda';
-                addresses[currentProcessIndex].data = data;
-            }
+const AddDataModal = ({ onClose, onRefresh, existingData }) => {
+        const [step, setStep] = useState('login'); 
+        const [email, setEmail] = useState('');
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [formData, setFormData] = useState({
+          domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: ''
         });
 
-        function exportToCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "Address,City,Range Low,Range High,GovMap Data\n";
-            let totalLow = 0, totalHigh = 0;
-            addresses.forEach(addr => {
-                totalLow += addr.rangeLow;
-                totalHigh += addr.rangeHigh;
-                csvContent += `${addr.original.replace(/,/g, " ")},${addr.city},${addr.rangeLow},${addr.rangeHigh},"${addr.data.replace(/(\r\n|\n|\r)/gm, " ").replace(/,/g, ";")}"\n`;
+        // מצבים לבדיקה אם המשתמש בחר "אחר"
+        const [isOtherDomain, setIsOtherDomain] = useState(false);
+        const [isOtherOwner, setIsOtherOwner] = useState(false);
+        const [isOtherSource, setIsOtherSource] = useState(false);
+
+        const uniqueDomains = useMemo(() => [...new Set(existingData.map(i => i.domain).filter(Boolean))], [existingData]);
+        const uniqueOwners = useMemo(() => [...new Set(existingData.map(i => i.owner).filter(Boolean))], [existingData]);
+        const uniqueSources = useMemo(() => [...new Set(existingData.map(i => i.sourceName).filter(Boolean))], [existingData]);
+
+        const handleSelectChange = (e, field, setOtherState) => {
+          const value = e.target.value;
+          if (value === "OTHER") {
+            setOtherState(true);
+            setFormData(prev => ({ ...prev, [field]: '' }));
+          } else {
+            setOtherState(false);
+            setFormData(prev => ({ ...prev, [field]: value }));
+          }
+        };
+
+        const handleLogin = (e) => {
+          e.preventDefault();
+          if(email.length > 3 && email.includes('@')) setStep('form');
+          else alert('אנא הזן כתובת אימייל תקינה');
+        };
+
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          setIsSubmitting(true);
+          try {
+            await fetch(APPS_SCRIPT_URL, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...formData, updatedBy: email })
             });
-            csvContent += `TOTAL,,,${totalLow.toFixed(1)},${totalHigh.toFixed(1)},SUM_ROW\n`;
-            const link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csvContent));
-            link.setAttribute("download", "govmap_full_analysis.csv");
-            document.body.appendChild(link);
-            link.click();
-        }
-    </script>
-</body>
-</html>
+            setStep('success');
+            setTimeout(() => { onRefresh(); onClose(); }, 2000);
+          } catch (error) {
+            alert("אירעה שגיאה בשמירה.");
+          } finally {
+            setIsSubmitting(false);
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col" onClick={e => e.stopPropagation()}>
+              
+              <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-800">
+                  {step === 'login' ? 'הזדהות' : step === 'success' ? 'בוצע!' : 'הוספת נתונים'}
+                </h2>
+                <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"><Icon name="X" size={20} /></button>
+              </div>
+
+              <div className="p-6">
+                {step === 'login' && (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="text-center mb-6">
+                      <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600">
+                        <Icon name="Lock" size={32} />
+                      </div>
+                      <p className="text-slate-600">הגישה לעריכה מוגבלת למורשים בלבד.</p>
+                    </div>
+                    <label className="input-label">אימייל להזדהות</label>
+                    <input type="email" required className="input-field" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200">המשך לטופס</button>
+                  </form>
+                )}
+
+                {step === 'form' && (
+                  <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-right">
+                    
+                    {/* Domain Select */}
+                    <div className="input-group">
+                      <label className="input-label">נושא (Domain)</label>
+                      {!isOtherDomain ? (
+                        <select 
+                          className="input-field appearance-none" 
+                          required 
+                          onChange={(e) => handleSelectChange(e, 'domain', setIsOtherDomain)}
+                        >
+                          <option value="">בחר נושא...</option>
+                          {uniqueDomains.map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="OTHER" className="font-bold text-indigo-600"> + אחר (הוסף חדש...) </option>
+                        </select>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input type="text" required className="input-field" placeholder="הקלד נושא חדש..." onChange={e => setFormData({...formData, domain: e.target.value})} />
+                          <button type="button" onClick={() => setIsOtherDomain(false)} className="px-3 bg-slate-100 rounded-xl text-slate-500 italic text-xs">ביטול</button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="input-group">
+                      <label className="input-label">תת-נושא / שם הדוח</label>
+                      <input type="text" required className="input-field" placeholder="למשל: דוח ביצועים" value={formData.subTopic} onChange={e => setFormData({...formData, subTopic: e.target.value})} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Owner Select */}
+                      <div className="input-group">
+                        <label className="input-label">אחראי (Owner)</label>
+                        {!isOtherOwner ? (
+                          <select className="input-field appearance-none" onChange={(e) => handleSelectChange(e, 'owner', setIsOtherOwner)}>
+                            <option value="">בחר אחראי...</option>
+                            {uniqueOwners.map(o => <option key={o} value={o}>{o}</option>)}
+                            <option value="OTHER"> + אחר... </option>
+                          </select>
+                        ) : (
+                          <input type="text" className="input-field" placeholder="שם חדש..." onChange={e => setFormData({...formData, owner: e.target.value})} onDoubleClick={() => setIsOtherOwner(false)} />
+                        )}
+                      </div>
+
+                      {/* Source Select */}
+                      <div className="input-group">
+                        <label className="input-label">מקור (Source)</label>
+                        {!isOtherSource ? (
+                          <select className="input-field appearance-none" onChange={(e) => handleSelectChange(e, 'sourceName', setIsOtherSource)}>
+                            <option value="">בחר מקור...</option>
+                            {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
+                            <option value="OTHER"> + אחר... </option>
+                          </select>
+                        ) : (
+                          <input type="text" className="input-field" placeholder="מערכת חדשה..." onChange={e => setFormData({...formData, sourceName: e.target.value})} onDoubleClick={() => setIsOtherSource(false)} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label className="input-label">מידע נוסף</label>
+                      <textarea className="input-field min-h-[80px]" placeholder="הערות..." value={formData.extraInfo} onChange={e => setFormData({...formData, extraInfo: e.target.value})}></textarea>
+                    </div>
+
+                    <button type="submit" disabled={isSubmitting} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg">
+                      {isSubmitting ? <Icon name="Loader2" className="spin" /> : 'שמור נתונים'}
+                    </button>
+                  </form>
+                )}
+                
+                {/* הצלחה - ללא שינוי */}
+                {step === 'success' && (
+                   <div className="text-center py-8">
+                    <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 animate-bounce">
+                      <Icon name="Check" size={40} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">הנתונים נשמרו!</h3>
+                    <button onClick={onClose} className="mt-6 text-indigo-600 font-bold hover:underline">סגור</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
