@@ -14,13 +14,10 @@
     
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; color: #0f172a; direction: rtl; margin: 0; }
-      
       .bg-gradient-fixed {
         background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
       }
-
-      /* שדות קלט עם מסגרת שחורה בולטת */
       .solid-input {
         display: block; width: 100%; background-color: #ffffff;
         border: 2px solid #000000 !important; border-radius: 8px;
@@ -28,20 +25,18 @@
         outline: none; transition: all 0.2s; margin-top: 6px; box-sizing: border-box;
       }
       .solid-input:focus { border-color: #4f46e5 !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
-      
       .field-label { display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px; }
       .form-group { margin-bottom: 20px; width: 100%; }
 
-      /* הגדרות מודל - תצוגה במרכז וגלילה תקינה */
       .modal-overlay {
         position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
         backdrop-filter: blur(4px); z-index: 1000;
         display: flex; align-items: center; justify-content: center;
-        padding: 20px; overflow: hidden;
+        padding: 20px; overflow-y: auto;
       }
       .modal-content {
         background: white; border-radius: 24px; width: 100%; max-width: 600px;
-        max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+        max-height: 90vh; display: flex; flex-col: column; overflow: hidden;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); animation: fadeIn 0.2s ease-out;
       }
       .modal-header { padding: 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; items-center; background: white; flex-shrink: 0; }
@@ -66,7 +61,6 @@
       // ==========================================
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      // הכתובת המעודכנת שסיפקת
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKQAK0yZ5-m9pYMJYTn9cbUKHMu-YGvvw7pcTHEUqd0rSAWHTkWElZSfqAb2hdbPEw/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
@@ -327,15 +321,15 @@
           <div className="min-h-screen pb-20 fade-in text-right">
              <header className="bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b p-4 flex justify-between items-center shadow-sm">
                 <div className="flex gap-3 items-center">
-                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-slate-800 transition-all flex items-center gap-2"><Icon name="Plus" size={16}/> הוספת מקור</button>
+                   <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2"><Icon name="Plus" size={16}/> הוספת מקור</button>
                    <button onClick={fetchData} className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-100 transition-all flex items-center gap-2 shadow-sm">
                       <Icon name="RefreshCw" className={isLoading?"spin":""} size={16}/> רענן נתונים
                    </button>
                    <button onClick={() => { localStorage.removeItem('userEmail'); setUserEmail(""); }} className="bg-white border-2 border-slate-100 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 transition-all"><Icon name="LogOut" size={18}/></button>
                 </div>
                 <div className="font-bold text-xl flex items-center gap-2 cursor-pointer" onClick={()=>{setSelectedDomain(null); setSearchTerm("");}}>
-                   <span>Analyst Data Hub</span>
-                   <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-200"><Icon name="Database" size={20} /></div> 
+                   <span>קטלוג מידע וידע</span>
+                   <div className="bg-indigo-600 text-white p-2 rounded-xl"><Icon name="Database" size={20} /></div> 
                 </div>
              </header>
 
@@ -396,4 +390,3 @@
     </script>
   </body>
 </html>
-
