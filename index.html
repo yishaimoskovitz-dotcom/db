@@ -44,7 +44,7 @@
       
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 14px 28px; border-radius: 16px; z-index: 3000; display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+      .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 14px 28px; border-radius: 16px; z-index: 3000; display: flex; align-items: center; gap: 12px; }
     </style>
   </head>
   <body>
@@ -56,7 +56,7 @@
 
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKQAK0yZ5-m9pYMJYTn9cbUKHMu-YGvvw7pcTHEUqd0rSAWHTkWElZSfqAb2hdbPEw/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
       const COLUMNS = [
@@ -154,7 +154,7 @@
                               ) : (
                                  <div className="relative">
                                     <input type={col.idx===3?'email':'text'} className="solid-input" value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} required={col.required} placeholder={otherMode[col.idx] ? "הקלד ערך חדש..." : ""} />
-                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[23px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור</button>}
+                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[23px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור לבחירה</button>}
                                  </div>
                               )}
                            </div>
@@ -291,7 +291,7 @@
 
         return (
           <div className="min-h-screen pb-20 fade-in text-right">
-             <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b p-5 flex justify-between items-center shadow-sm">
+             <header className="bg-white/90 backdrop-blur-xl sticky top-0 z-30 border-b p-5 flex justify-between items-center shadow-sm">
                 <div className="flex gap-4 items-center">
                    <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2">
                       <Icon name="Plus" size={18}/> הוספת מקור
@@ -308,7 +308,7 @@
 
              <div className="max-w-7xl mx-auto px-4 mt-12 text-center">
                 <div className="mb-12 relative max-w-2xl mx-auto">
-                  <input placeholder="מה ברצונך לחפש?" className="solid-input pr-14 h-16 text-xl shadow-xl shadow-slate-100 border-none" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
+                  <input placeholder="חיפוש חופשי בקטלוג..." className="solid-input pr-14 h-16 text-xl shadow-xl shadow-slate-100 border-none" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center h-full">
                       <Icon name="Search" size={26} />
                   </div>
@@ -344,7 +344,7 @@
                     }} fullData={data} onSubmit={()=>{}} isSubmitting={false} onClose={()=>setShowAddModal(false)} submitText="שמור למאגר" />
                </div>
              )}
-             {toastMsg && <div className="toast" onClick={()=>setToastMsg(null)}><Icon name="CheckCircle" size={20} className="text-emerald-400" /> {toastMsg}</div>}
+             {toastMsg && <div className="toast fade-in" onClick={()=>setToastMsg(null)}><Icon name="CheckCircle" size={20} className="text-emerald-400" /> {toastMsg}</div>}
           </div>
         );
       }
