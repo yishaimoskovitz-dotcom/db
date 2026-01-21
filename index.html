@@ -13,13 +13,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <style>
-      body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; color: #0f172a; direction: rtl; }
+      body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; color: #0f172a; direction: rtl; margin: 0; }
       
       .bg-gradient-fixed {
         background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
       }
 
+      /* עיצוב שדות קלט עם מסגרת שחורה קבועה */
       .solid-input {
         display: block; width: 100%; background-color: #ffffff;
         border: 2px solid #000000 !important; border-radius: 8px;
@@ -30,11 +31,20 @@
       
       .field-label { display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px; }
       .form-group { margin-bottom: 20px; width: 100%; }
+
+      /* אנימציית פתיחה חלקה למודל */
+      .modal-overlay {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px); z-index: 1000;
+        display: flex; align-items: center; justify-content: center; padding: 20px;
+      }
+      
       .fade-in { animation: fadeIn 0.2s ease-out forwards; }
-      @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+      @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
       .spin { animation: spin 1s linear infinite; }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; z-index: 3000; display: flex; align-items: center; gap: 10px; animation: fadeIn 0.3s; }
+
+      .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; z-index: 3000; display: flex; align-items: center; gap: 10px; }
     </style>
   </head>
   <body>
@@ -44,13 +54,12 @@
     <script type="text/babel">
       const { useState, useEffect, useMemo, useRef } = React;
 
-      // --- הגדרות ---
+      // --- הגדרות מערכת ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
-      // עמודות הקטלוג - אימייל הפך ל-select למילוי אוטומטי
       const COLUMNS = [
         { idx: 0, label: 'נושא', type: 'select', required: true },
         { idx: 1, label: 'תת נושא', type: 'text', required: true },
@@ -109,29 +118,7 @@
         return <>{parts.map((p, i) => p.match(/^(https?:\/\/|www\.)/) ? <a key={i} href={p.startsWith('www') ? `https://${p}` : p} target="_blank" className="text-indigo-600 hover:underline font-medium break-all" onClick={e=>e.stopPropagation()}>{p}</a> : p)}</>;
       };
 
-      const Toast = ({ message, onClose }) => {
-        useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-        return <div className="toast"><Icon name="CheckCircle" size={20} className="text-emerald-400" /><span>{message}</span></div>;
-      };
-
-      // --- רכיבי טפסים ---
-
-      const LoginPage = ({ onLogin }) => {
-         const [email, setEmail] = useState("");
-         return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-               <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center border border-slate-200 fade-in">
-                  <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Icon name="Database" size={32} className="text-white" /></div>
-                  <h1 className="text-2xl font-bold mb-6 text-slate-900">Analyst Data Hub</h1>
-                  <form onSubmit={(e) => { e.preventDefault(); if(email.includes('@')) onLogin(email); }}>
-                     <div className="form-group text-right"><label className="field-label">כתובת מייל ארגונית</label><input type="email" className="solid-input" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /></div>
-                     <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg">כניסה</button>
-                  </form>
-               </div>
-            </div>
-         );
-      };
-
+      // --- רכיבי טופס ---
       const DynamicForm = ({ title, formData, setFormData, onSubmit, onClose, submitText, isSubmitting, fullData }) => {
          const [otherMode, setOtherMode] = useState({});
 
@@ -142,21 +129,21 @@
          }
 
          const getOptionsFromData = (colIdx) => {
-            return [...new Set(fullData.map(item => item.values[colIdx]).filter(v => v && v.trim() !== "" && v !== "בקשת מידע"))].sort();
+            return [...new Set(fullData.map(item => item.values[colIdx]).filter(v => v && v.trim() !== ""))].sort();
          }
 
          return (
-            <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] shadow-2xl fade-in text-right" onClick={e=>e.stopPropagation()}>
-               <div className="p-5 border-b flex justify-between items-center bg-white sticky top-0 z-10">
-                  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="X" size={20}/></button>
+            <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[85vh] shadow-2xl fade-in" onClick={e=>e.stopPropagation()}>
+               <div className="p-5 border-b flex justify-between items-center bg-white sticky top-0 z-10 rounded-t-2xl">
+                  <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><Icon name="X" size={20}/></button>
                   <h2 className="font-bold text-xl">{title}</h2>
                </div>
-               <div className="p-6 overflow-y-auto">
+               <div className="p-6 overflow-y-auto text-right">
                   <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
                      {COLUMNS.map((col) => {
                         if (col.auto) return null;
                         const existingOpts = getOptionsFromData(col.idx);
-                        const isSelectField = col.type === 'select';
+                        const isSelectField = col.idx !== 1 && (col.type === 'select' || existingOpts.length > 0);
 
                         return (
                            <div key={col.idx} className="form-group">
@@ -172,18 +159,18 @@
                                         {existingOpts.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                         <option value="ADD_NEW" className="text-indigo-600 font-bold italic">+ אחר (הקלדה חופשית)...</option>
                                      </select>
-                                     <div className="absolute left-3 top-[38px] pointer-events-none text-slate-400"><Icon name="ChevronDown" size={16} /></div>
+                                     <div className="absolute left-3 top-[23px] pointer-events-none text-slate-400"><Icon name="ChevronDown" size={16} /></div>
                                  </div>
                               ) : (
                                  <div className="relative">
                                     <input type={col.idx===3?'email':'text'} className="solid-input" placeholder={otherMode[col.idx] ? "הקלד ערך חדש..." : ""} value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} required={col.required} />
-                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[36px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור</button>}
+                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[21px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור</button>}
                                  </div>
                               )}
                            </div>
                         )
                      })}
-                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold mt-4 flex justify-center gap-2">
+                     <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold mt-4 flex justify-center gap-2 hover:bg-slate-800 transition-colors shadow-lg">
                         {isSubmitting ? <Icon name="Loader2" className="spin" /> : submitText}
                      </button>
                   </form>
@@ -192,38 +179,41 @@
          );
       }
 
-      const Card = ({ item, onClick, index }) => (
-        <div onClick={onClick} style={{ animationDelay: `${index * 50}ms` }} className="fade-in group bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all cursor-pointer text-right flex flex-col">
-          <div className="h-1 w-12 bg-indigo-500 mb-4 rounded-full"></div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">{item.values[0]}</span>
-          <h3 className="text-lg font-bold text-slate-900 leading-tight flex-grow mb-4">{item.values[1]}</h3>
-          <div className="flex items-center gap-2 pt-4 border-t border-slate-50 text-slate-500 text-sm">
-            <Icon name="User" size={14} />
-            <span className="truncate">{item.values[2] || "לא צוין"}</span>
-          </div>
-        </div>
-      );
-
+      // --- מודל צפייה ועריכה ---
       const ViewEditModal = ({ item, onClose, onRefresh, setToast, userEmail, fullData }) => {
          const [mode, setMode] = useState('view');
          const [isSubmitting, setIsSubmitting] = useState(false);
          const [editData, setEditData] = useState([...item.values]); 
+         
+         // לוגיקת הרשאות עריכה: בעלים או מייל תואם
          const canEdit = userEmail === MANAGER_EMAIL || userEmail === item.values[3];
+
+         useEffect(() => {
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = 'unset'; };
+         }, []);
 
          const handleUpdate = async () => {
             setIsSubmitting(true);
             const newDataArray = [...editData];
             newDataArray[15] = new Date().toLocaleDateString('he-IL');
-            try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'update', id: item.id, values: newDataArray }) }); setToast("עודכן בהצלחה!"); onRefresh(); onClose(); } catch(e) { setIsSubmitting(false); }
+            try { 
+               await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'update', id: item.id, values: newDataArray }) }); 
+               setToast("עודכן בהצלחה!"); 
+               onRefresh(); 
+               onClose(); 
+            } catch(e) { 
+               setIsSubmitting(false); 
+            }
          }
 
-         if (mode === 'edit') return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 fade-in" onClick={onClose}><DynamicForm title="עריכת פרטים" formData={editData} setFormData={setEditData} fullData={fullData} onSubmit={handleUpdate} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
+         if (mode === 'edit') return <div className="modal-overlay" onClick={onClose}><DynamicForm title="עריכת פרטים" formData={editData} setFormData={setEditData} fullData={fullData} onSubmit={handleUpdate} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
 
          return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in text-right" onClick={onClose}>
-               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e=>e.stopPropagation()}>
-                  <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition"><Icon name="X" size={24}/></button>
+            <div className="modal-overlay" onClick={onClose}>
+               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto flex flex-col fade-in text-right" onClick={e=>e.stopPropagation()}>
+                  <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10 rounded-t-2xl">
+                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><Icon name="X" size={24}/></button>
                      <h2 className="text-xl font-bold">{item.values[1]}</h2>
                   </div>
                   <div className="p-8 space-y-4">
@@ -231,7 +221,11 @@
                         const val = item.values[col.idx]; if (!val) return null;
                         return <div key={col.idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100"><div className="text-xs font-bold text-slate-400 uppercase mb-1">{col.label}</div><div className="font-medium text-slate-900"><Linkify content={val} /></div></div>;
                      })}
-                     {canEdit && <button onClick={()=>setMode('edit')} className="w-full py-4 border-2 border-indigo-600 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition mt-4">ערוך מידע זה</button>}
+                     {canEdit && (
+                        <button onClick={()=>setMode('edit')} className="w-full py-4 border-2 border-indigo-600 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-all mt-4 flex items-center justify-center gap-2">
+                           <Icon name="Edit3" size={18} /> ערוך מידע זה
+                        </button>
+                     )}
                   </div>
                </div>
             </div>
@@ -249,7 +243,11 @@
         const [toastMsg, setToastMsg] = useState(null);
         const [userEmail, setUserEmail] = useState("");
 
-        useEffect(() => { const storedEmail = localStorage.getItem('userEmail'); if (storedEmail) setUserEmail(storedEmail); fetchData(); }, []);
+        useEffect(() => { 
+           const storedEmail = localStorage.getItem('userEmail'); 
+           if (storedEmail) setUserEmail(storedEmail); 
+           fetchData(); 
+        }, []);
         
         const fetchData = async () => { 
           setIsLoading(true); 
@@ -266,45 +264,94 @@
         const filteredData = useMemo(() => data.filter(item => item.values.join(" ").toLowerCase().includes(searchTerm.toLowerCase()) && (selectedDomain ? item.values[0] === selectedDomain : true)), [data, searchTerm, selectedDomain]);
         const domains = [...new Set(data.map(i => i.values[0]))].filter(Boolean);
 
-        if (!userEmail) return <LoginPage onLogin={(email) => { localStorage.setItem('userEmail', email); setUserEmail(email); }} />;
+        const handleLogin = (email) => { localStorage.setItem('userEmail', email); setUserEmail(email); };
+        const handleLogout = () => { localStorage.removeItem('userEmail'); setUserEmail(""); };
+
+        if (!userEmail) return (
+           <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center border border-slate-200 fade-in">
+                 <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Icon name="Database" size={32} className="text-white" /></div>
+                 <h1 className="text-2xl font-bold mb-6 text-slate-900 font-['Rubik']">Analyst Data Hub</h1>
+                 <form onSubmit={(e) => { e.preventDefault(); if(e.target.email.value.includes('@')) handleLogin(e.target.email.value); }}>
+                    <div className="form-group text-right"><label className="field-label">כתובת מייל ארגונית</label><input type="email" name="email" className="solid-input" required autoFocus /></div>
+                    <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg">כניסה למערכת</button>
+                 </form>
+              </div>
+           </div>
+        );
 
         return (
           <div className="min-h-screen pb-20 fade-in text-right">
-             <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-30 border-b p-4 flex justify-between items-center shadow-sm">
-                <div className="flex gap-2">
-                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md">הוספת מקור</button>
-                   <button onClick={fetchData} className="bg-white border px-3 py-2 rounded-xl hover:bg-slate-50"><Icon name="RefreshCw" className={isLoading?"spin":""}/></button>
-                   <button onClick={() => { localStorage.removeItem('userEmail'); setUserEmail(""); }} className="bg-white border px-3 py-2 rounded-xl text-red-500"><Icon name="LogOut" /></button>
+             <header className="bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b p-4 flex justify-between items-center shadow-sm">
+                <div className="flex gap-2 items-center">
+                   <button onClick={() => setShowAddModal(true)} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-slate-800 transition-all flex items-center gap-2">
+                      <Icon name="Plus" size={16} /> הוספת מקור
+                   </button>
+                   <button onClick={fetchData} className="bg-white border-2 border-slate-200 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2" title="רענן נתונים">
+                      <Icon name="RefreshCw" className={isLoading?"spin":""} size={18}/>
+                   </button>
+                   <button onClick={handleLogout} className="bg-red-50 text-red-600 px-3 py-2.5 rounded-xl hover:bg-red-100 transition-all border border-red-100">
+                      <Icon name="LogOut" size={18} />
+                   </button>
                 </div>
-                <div className="font-bold text-xl flex items-center gap-2 cursor-pointer" onClick={()=>{setSelectedDomain(null); setSearchTerm("");}}>
-                   <span>Analyst Data Hub</span>
-                   <div className="bg-indigo-600 text-white p-2 rounded-xl"><Icon name="Database" size={20} /></div> 
+                <div className="font-bold text-xl flex items-center gap-3 cursor-pointer" onClick={()=>{setSelectedDomain(null); setSearchTerm("");}}>
+                   <span className="bg-clip-text text-transparent bg-gradient-to-l from-slate-900 to-slate-600">Analyst Data Hub</span>
+                   <div className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-200"><Icon name="Database" size={20} /></div> 
                 </div>
              </header>
 
              <div className="max-w-7xl mx-auto px-4 mt-8">
-                <div className="mb-8 relative"><input placeholder="חיפוש חופשי..." className="solid-input pr-12" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} /><Icon name="Search" className="absolute right-4 top-[18px] text-slate-400" /></div>
+                <div className="mb-8 relative max-w-2xl mx-auto">
+                  <input placeholder="חיפוש חופשי בקטלוג..." className="solid-input pr-12 h-14 text-lg" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} />
+                  <Icon name="Search" className="absolute right-4 top-[24px] text-slate-400" size={20} />
+                </div>
                 
-                <div className="flex flex-wrap gap-2 mb-8 justify-end">
-                   {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl font-bold text-sm transition ${selectedDomain===d?'bg-slate-800 text-white shadow-md scale-105':'bg-white border text-slate-600 hover:bg-slate-50'}`}>{d}</button>)}
-                   <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl font-bold text-sm ${!selectedDomain?'bg-slate-800 text-white':'bg-white border text-slate-600'}`}>הכל</button>
+                <div className="flex flex-wrap gap-2 mb-10 justify-center">
+                   <button onClick={() => setSelectedDomain(null)} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${!selectedDomain?'bg-slate-800 text-white shadow-lg scale-105':'bg-white border-2 border-slate-100 text-slate-500 hover:bg-slate-50'}`}>הכל</button>
+                   {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${selectedDomain===d?'bg-slate-800 text-white shadow-lg scale-105':'bg-white border-2 border-slate-100 text-slate-500 hover:bg-slate-50'}`}>{d}</button>)}
                 </div>
 
-                {isLoading && data.length === 0 ? <div className="text-center py-20 opacity-50">טוען נתונים...</div> : 
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">{filteredData.map((item, idx) => (<Card key={idx} item={item} index={idx} onClick={() => setSelectedItem(item)} />))}</div>
-                }
+                {isLoading && data.length === 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {[1,2,3,4,5,6,7,8].map(i => <div key={i} className="h-48 bg-white/50 rounded-2xl border border-slate-100 animate-pulse"></div>)}
+                   </div>
+                ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {filteredData.map((item, idx) => (
+                         <div key={idx} onClick={() => setSelectedItem(item)} className="fade-in group bg-white rounded-2xl border-2 border-slate-100 p-6 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all cursor-pointer text-right flex flex-col relative overflow-hidden">
+                            <div className="h-1.5 w-full bg-slate-100 absolute top-0 left-0 group-hover:bg-indigo-500 transition-colors"></div>
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase mb-2 tracking-wider">{item.values[0]}</span>
+                            <h3 className="text-lg font-bold text-slate-900 leading-tight flex-grow mb-6 group-hover:text-indigo-600 transition-colors">{item.values[1]}</h3>
+                            <div className="flex items-center gap-2 pt-4 border-t border-slate-50 text-slate-500 text-sm">
+                               <Icon name="User" size={14} />
+                               <span className="truncate font-medium">{item.values[2] || "לא צוין"}</span>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                )}
              </div>
 
-             {selectedItem && <ViewEditModal item={selectedItem} onClose={()=>setSelectedItem(null)} onRefresh={fetchData} setToast={setToastMsg} userEmail={userEmail} fullData={data} />}
+             {selectedItem && <ViewEditModal item={selectedItem} onClose={()=>setSelectedItem(null)} onRefresh={fetchData} setToast={(m)=>setToastMsg(m)} userEmail={userEmail} fullData={data} />}
              
              {showAddModal && (
-               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={()=>setShowAddModal(false)}>
+               <div className="modal-overlay" onClick={()=>setShowAddModal(false)}>
                   <DynamicForm 
                     title="הוספת מקור חדש" 
                     formData={Array(16).fill("")} 
                     setFormData={(vals) => {
                       const submitNew = async () => {
-                         try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'create', values: vals.map((v,i)=>i===15?new Date().toLocaleDateString('he-IL'):(i===3 && !v ? userEmail : v)) }) }); setToastMsg("נוסף בהצלחה!"); fetchData(); setShowAddModal(false); } catch(e) {}
+                         try { 
+                            const finalVals = vals.map((v,i) => {
+                               if(i === 15) return new Date().toLocaleDateString('he-IL');
+                               if(i === 3 && !v) return userEmail;
+                               return v;
+                            });
+                            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'create', values: finalVals }) }); 
+                            setToastMsg("נוסף בהצלחה!"); 
+                            fetchData(); 
+                            setShowAddModal(false); 
+                         } catch(e) {}
                       };
                       submitNew();
                     }} 
@@ -312,17 +359,19 @@
                     onSubmit={()=>{}} 
                     isSubmitting={false} 
                     onClose={()=>setShowAddModal(false)} 
-                    submitText="שמור" 
+                    submitText="שמור למאגר" 
                   />
                </div>
              )}
-             {toastMsg && <Toast message={toastMsg} onClose={()=>setToastMsg(null)} />}
+             
+             {toastMsg && <div className="toast fade-in" onClick={()=>setToastMsg(null)}><Icon name="Check" /> {toastMsg}</div>}
           </div>
         );
       }
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<React.StrictMode><App /></React.StrictMode>);
+      root.render(<App />);
     </script>
   </body>
 </html>
+
