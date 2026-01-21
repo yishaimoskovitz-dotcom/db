@@ -14,10 +14,12 @@
     
     <style>
       body { font-family: 'Rubik', sans-serif; background-color: #f8fafc; color: #0f172a; direction: rtl; }
+      
       .bg-gradient-fixed {
         background: radial-gradient(circle at 10% 20%, rgb(241, 245, 249) 0%, rgb(255, 255, 255) 90%);
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
       }
+
       .solid-input {
         display: block; width: 100%; background-color: #ffffff;
         border: 2px solid #000000 !important; border-radius: 8px;
@@ -25,6 +27,7 @@
         outline: none; transition: all 0.2s; margin-top: 6px; box-sizing: border-box;
       }
       .solid-input:focus { border-color: #4f46e5 !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+      
       .field-label { display: block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px; }
       .form-group { margin-bottom: 20px; width: 100%; }
       .fade-in { animation: fadeIn 0.2s ease-out forwards; }
@@ -41,17 +44,18 @@
     <script type="text/babel">
       const { useState, useEffect, useMemo, useRef } = React;
 
+      // --- הגדרות ---
       const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
       const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
       const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp0lqIcCdgBEbeaCf1mfGax3hTlhDVP5BG-aF6LnkHVugCkjnytj1ih4IQJYYTFl-s/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
-      // עדכון: אימייל וואטסאפ הפכו ל-select כדי לאפשר בחירה מהקיים
+      // עמודות הקטלוג - אימייל הפך ל-select למילוי אוטומטי
       const COLUMNS = [
         { idx: 0, label: 'נושא', type: 'select', required: true },
         { idx: 1, label: 'תת נושא', type: 'text', required: true },
         { idx: 2, label: 'אחראי', type: 'select' },
-        { idx: 3, label: 'אימייל אחראי', type: 'select' }, // שונה ל-select
+        { idx: 3, label: 'אימייל אחראי', type: 'select' }, 
         { idx: 4, label: 'תיאור מקור', type: 'textarea' },
         { idx: 5, label: 'שם המקור', type: 'select' },
         { idx: 6, label: 'טבלה מטויבת', type: 'text' },
@@ -63,10 +67,10 @@
         { idx: 12, label: 'תדירות העברה', type: 'select' },
         { idx: 13, label: 'סוג המקור', type: 'select' },
         { idx: 14, label: 'איכות המקור', type: 'select' },
-        { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true },
-        { idx: 16, label: 'וואטסאפ', type: 'select' } // הוספת וואטסאפ
+        { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true }
       ];
 
+      // --- פונקציות עזר ---
       const parseCSV = (str) => {
         const arr = [];
         let quote = false, col = 0, row = 0, c = 0;
@@ -110,6 +114,24 @@
         return <div className="toast"><Icon name="CheckCircle" size={20} className="text-emerald-400" /><span>{message}</span></div>;
       };
 
+      // --- רכיבי טפסים ---
+
+      const LoginPage = ({ onLogin }) => {
+         const [email, setEmail] = useState("");
+         return (
+            <div className="min-h-screen flex items-center justify-center p-4">
+               <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center border border-slate-200 fade-in">
+                  <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg"><Icon name="Database" size={32} className="text-white" /></div>
+                  <h1 className="text-2xl font-bold mb-6 text-slate-900">Analyst Data Hub</h1>
+                  <form onSubmit={(e) => { e.preventDefault(); if(email.includes('@')) onLogin(email); }}>
+                     <div className="form-group text-right"><label className="field-label">כתובת מייל ארגונית</label><input type="email" className="solid-input" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /></div>
+                     <button className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg">כניסה</button>
+                  </form>
+               </div>
+            </div>
+         );
+      };
+
       const DynamicForm = ({ title, formData, setFormData, onSubmit, onClose, submitText, isSubmitting, fullData }) => {
          const [otherMode, setOtherMode] = useState({});
 
@@ -124,12 +146,12 @@
          }
 
          return (
-            <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] shadow-2xl fade-in" onClick={e=>e.stopPropagation()}>
+            <div className="bg-white rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] shadow-2xl fade-in text-right" onClick={e=>e.stopPropagation()}>
                <div className="p-5 border-b flex justify-between items-center bg-white sticky top-0 z-10">
-                  <h2 className="font-bold text-xl">{title}</h2>
                   <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full"><Icon name="X" size={20}/></button>
+                  <h2 className="font-bold text-xl">{title}</h2>
                </div>
-               <div className="p-6 overflow-y-auto text-right">
+               <div className="p-6 overflow-y-auto">
                   <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
                      {COLUMNS.map((col) => {
                         if (col.auto) return null;
@@ -155,7 +177,7 @@
                               ) : (
                                  <div className="relative">
                                     <input type={col.idx===3?'email':'text'} className="solid-input" placeholder={otherMode[col.idx] ? "הקלד ערך חדש..." : ""} value={formData[col.idx] || ''} onChange={e => handleChange(col.idx, e.target.value)} required={col.required} />
-                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[36px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור לבחירה</button>}
+                                    {otherMode[col.idx] && <button type="button" onClick={() => setOtherMode({...otherMode, [col.idx]: false})} className="absolute left-2 top-[36px] bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] border">חזור</button>}
                                  </div>
                               )}
                            </div>
@@ -216,6 +238,7 @@
          );
       }
 
+      // --- אפליקציה ראשית ---
       function App() {
         const [data, setData] = useState([]);
         const [searchTerm, setSearchTerm] = useState("");
@@ -235,7 +258,7 @@
             const text = await response.text(); 
             const rows = parseCSV(text); 
             if (rows.length < 2) { setData([]); return; } 
-            const newData = rows.slice(1).map((row, index) => ({ id: index, values: row.slice(0, 17) })).filter(i => i.values[1]); 
+            const newData = rows.slice(1).map((row, index) => ({ id: index, values: row.slice(0, 16) })).filter(i => i.values[1]); 
             setData(newData); 
           } catch (err) {} finally { setIsLoading(false); } 
         };
@@ -261,6 +284,7 @@
 
              <div className="max-w-7xl mx-auto px-4 mt-8">
                 <div className="mb-8 relative"><input placeholder="חיפוש חופשי..." className="solid-input pr-12" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} /><Icon name="Search" className="absolute right-4 top-[18px] text-slate-400" /></div>
+                
                 <div className="flex flex-wrap gap-2 mb-8 justify-end">
                    {domains.map(d=><button key={d} onClick={() => setSelectedDomain(d)} className={`px-4 py-2 rounded-xl font-bold text-sm transition ${selectedDomain===d?'bg-slate-800 text-white shadow-md scale-105':'bg-white border text-slate-600 hover:bg-slate-50'}`}>{d}</button>)}
                    <button onClick={() => setSelectedDomain(null)} className={`px-4 py-2 rounded-xl font-bold text-sm ${!selectedDomain?'bg-slate-800 text-white':'bg-white border text-slate-600'}`}>הכל</button>
@@ -277,7 +301,7 @@
                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm fade-in" onClick={()=>setShowAddModal(false)}>
                   <DynamicForm 
                     title="הוספת מקור חדש" 
-                    formData={Array(17).fill("")} 
+                    formData={Array(16).fill("")} 
                     setFormData={(vals) => {
                       const submitNew = async () => {
                          try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'create', values: vals.map((v,i)=>i===15?new Date().toLocaleDateString('he-IL'):(i===3 && !v ? userEmail : v)) }) }); setToastMsg("נוסף בהצלחה!"); fetchData(); setShowAddModal(false); } catch(e) {}
@@ -288,7 +312,7 @@
                     onSubmit={()=>{}} 
                     isSubmitting={false} 
                     onClose={()=>setShowAddModal(false)} 
-                    submitText="שמור למאגר" 
+                    submitText="שמור" 
                   />
                </div>
              )}
@@ -302,5 +326,3 @@
     </script>
   </body>
 </html>
-
-
