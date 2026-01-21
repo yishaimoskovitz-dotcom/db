@@ -30,8 +30,8 @@
       .input-field { @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 text-right; }
       .input-label { @apply block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide text-right; }
       
-      /* עיצוב מותאם ל-Select */
-      select.input-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 1rem center; background-size: 1.2em; }
+      /* עיצוב חץ לתיבת בחירה select */
+      select.input-field { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 1rem center; background-size: 1em; }
     </style>
   </head>
   <body class="text-slate-800">
@@ -149,7 +149,7 @@
         );
       };
 
-      // --- מודל הוספה חכם עם בחירה מרשימה ---
+      // --- מודל הוספה חכם ודינמי ---
       const AddDataModal = ({ onClose, onRefresh, existingData }) => {
         const [step, setStep] = useState('login'); 
         const [email, setEmail] = useState('');
@@ -158,7 +158,7 @@
           domain: '', subTopic: '', owner: '', sourceName: '', extraInfo: ''
         });
 
-        // ניהול מצבי "אחר"
+        // מצבים לשליטה על שדות "אחר"
         const [isOtherDomain, setIsOtherDomain] = useState(false);
         const [isOtherOwner, setIsOtherOwner] = useState(false);
         const [isOtherSource, setIsOtherSource] = useState(false);
@@ -168,13 +168,13 @@
         const uniqueSources = useMemo(() => [...new Set(existingData.map(i => i.sourceName).filter(Boolean))], [existingData]);
 
         const handleSelectChange = (e, field, setOtherState) => {
-          const value = e.target.value;
-          if (value === "OTHER") {
+          const val = e.target.value;
+          if (val === "OTHER") {
             setOtherState(true);
             setFormData(prev => ({ ...prev, [field]: '' }));
           } else {
             setOtherState(false);
-            setFormData(prev => ({ ...prev, [field]: value }));
+            setFormData(prev => ({ ...prev, [field]: val }));
           }
         };
 
@@ -228,18 +228,20 @@
 
                 {step === 'form' && (
                   <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                    
+                    {/* Domain Select */}
                     <div className="input-group">
                       <label className="input-label">נושא (Domain)</label>
                       {!isOtherDomain ? (
-                        <select className="input-field" required onChange={(e) => handleSelectChange(e, 'domain', setIsOtherDomain)}>
+                        <select className="input-field" required onChange={(e) => handleSelectChange(e, 'domain', setIsOtherDomain)} value={formData.domain}>
                           <option value="">בחר מהרשימה...</option>
                           {uniqueDomains.map(d => <option key={d} value={d}>{d}</option>)}
-                          <option value="OTHER" className="text-indigo-600 font-bold">+ אחר / נושא חדש...</option>
+                          <option value="OTHER" className="text-indigo-600 font-bold italic">+ אחר (הוספה ידנית)...</option>
                         </select>
                       ) : (
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => setIsOtherDomain(false)} className="px-3 bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 text-xs">חזור</button>
-                          <input type="text" required className="input-field" placeholder="הקלד נושא חדש..." onChange={e => setFormData({...formData, domain: e.target.value})} />
+                        <div className="relative">
+                          <input type="text" required className="input-field pl-16" placeholder="הקלד נושא חדש..." value={formData.domain} onChange={e => setFormData({...formData, domain: e.target.value})} />
+                          <button type="button" onClick={() => setIsOtherDomain(false)} className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-200 px-2 py-1 rounded-lg hover:bg-slate-300 transition-colors">חזור</button>
                         </div>
                       )}
                     </div>
@@ -250,28 +252,37 @@
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
+                      {/* Owner Select */}
                       <div className="input-group">
                         <label className="input-label">אחראי (Owner)</label>
                         {!isOtherOwner ? (
-                          <select className="input-field" onChange={(e) => handleSelectChange(e, 'owner', setIsOtherOwner)}>
-                            <option value="">בחר אחראי...</option>
+                          <select className="input-field" onChange={(e) => handleSelectChange(e, 'owner', setIsOtherOwner)} value={formData.owner}>
+                            <option value="">בחר...</option>
                             {uniqueOwners.map(o => <option key={o} value={o}>{o}</option>)}
-                            <option value="OTHER">+ אחר...</option>
+                            <option value="OTHER" className="text-indigo-600 font-bold italic">+ אחר...</option>
                           </select>
                         ) : (
-                          <input type="text" className="input-field" placeholder="שם חדש..." onChange={e => setFormData({...formData, owner: e.target.value})} />
+                          <div className="relative">
+                            <input type="text" required className="input-field pl-12" placeholder="שם חדש" value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})} />
+                            <button type="button" onClick={() => setIsOtherOwner(false)} className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-200 px-1 py-1 rounded-md">חזור</button>
+                          </div>
                         )}
                       </div>
+
+                      {/* Source Select */}
                       <div className="input-group">
                         <label className="input-label">מקור (Source)</label>
                         {!isOtherSource ? (
-                          <select className="input-field" onChange={(e) => handleSelectChange(e, 'sourceName', setIsOtherSource)}>
-                            <option value="">בחר מקור...</option>
+                          <select className="input-field" onChange={(e) => handleSelectChange(e, 'sourceName', setIsOtherSource)} value={formData.sourceName}>
+                            <option value="">בחר...</option>
                             {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
-                            <option value="OTHER">+ אחר...</option>
+                            <option value="OTHER" className="text-indigo-600 font-bold italic">+ אחר...</option>
                           </select>
                         ) : (
-                          <input type="text" className="input-field" placeholder="מערכת חדשה..." onChange={e => setFormData({...formData, sourceName: e.target.value})} />
+                          <div className="relative">
+                            <input type="text" required className="input-field pl-12" placeholder="מערכת" value={formData.sourceName} onChange={e => setFormData({...formData, sourceName: e.target.value})} />
+                            <button type="button" onClick={() => setIsOtherSource(false)} className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-200 px-1 py-1 rounded-md">חזור</button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -345,12 +356,12 @@
                   <div className="hidden sm:block text-right"><h1 className="font-bold text-xl tracking-tight text-slate-900 leading-none">Analyst Hub</h1><p className="text-[11px] text-slate-500 font-medium text-right">Data Intelligence Center</p></div>
                   <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg"><Icon name="Activity" size={24} /></div>
                 </div>
-                <div className="hidden md:block flex-grow max-w-md relative group mx-4">
+                <div className="hidden md:block flex-grow max-w-md relative group mx-4 text-right">
                   <input type="text" placeholder="חיפוש דוחות, אנשים, נתונים..." className="w-full bg-slate-100/50 border border-slate-200 focus:bg-white focus:border-indigo-500 rounded-xl py-2.5 pr-10 pl-4 text-sm transition-all outline-none text-right" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Icon name="Search" size={18} /></div>
                 </div>
                 <div className="flex items-center gap-2">
-                   <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all">
+                   <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all shadow-md">
                     <Icon name="PlusCircle" size={16} />
                     <span className="hidden lg:inline">הוסף נתונים</span>
                   </button>
