@@ -47,23 +47,15 @@
       .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 14px 28px; border-radius: 16px; z-index: 3000; display: flex; align-items: center; gap: 12px; }
 
       .comment-badge-enhanced {
-        background-color: #f0f7ff;
-        color: #1d4ed8;
-        padding: 6px 10px;
-        border-radius: 10px;
-        font-size: 13px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid #bfdbfe;
-        transition: all 0.2s;
+        background-color: #f0f7ff; color: #1d4ed8; padding: 6px 10px; border-radius: 10px;
+        font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+        border: 1px solid #bfdbfe; transition: all 0.2s;
       }
       .group:hover .comment-badge-enhanced {
-        background-color: #2563eb;
-        color: white;
-        border-color: #2563eb;
+        background-color: #2563eb; color: white; border-color: #2563eb;
       }
+      .fade-in { animation: fadeIn 0.5s ease-out; }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
   </head>
   <body>
@@ -73,9 +65,8 @@
     <script type="text/babel">
       const { useState, useEffect, useMemo, useRef } = React;
 
-      const SHEET_ID = '1myMr9MeMtgAcipoR1rJaX3MdamlIBZugt_TX5eafX7Q';
-      const GOOGLE_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
-      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzKQAK0yZ5-m9pYMJYTn9cbUKHMu-YGvvw7pcTHEUqd0rSAWHTkWElZSfqAb2hdbPEw/exec"; 
+      // ה-URL המעודכן לסקריפט שלך
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz83PC6rmn_ZZPU_t3nDBVyBcWxs6VqDfNPTvDVe5KPbZpnCt5rx9ZptYPBxfX5ihTD/exec"; 
       const MANAGER_EMAIL = "yishaimoskovitz@gmail.com";
 
       const COLUMNS = [
@@ -93,23 +84,7 @@
         { idx: 15, label: 'עדכון אחרון', type: 'date', auto: true }
       ];
 
-      const parseCSV = (str) => {
-        const arr = [];
-        let quote = false, col = 0, row = 0, c = 0;
-        for (; c < str.length; c++) {
-          let cc = str[c], nc = str[c+1];
-          arr[row] = arr[row] || [];
-          arr[row][col] = arr[row][col] || '';
-          if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
-          if (cc == '"') { quote = !quote; continue; }
-          if (cc == ',' && !quote) { ++col; continue; }
-          if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
-          if (cc == '\n' && !quote) { ++row; col = 0; continue; }
-          arr[row][col] += cc;
-        }
-        return arr;
-      };
-
+      // פונקציות עזר (Icon, Linkify, DynamicForm, ViewEditModal) נשארות זהות
       const Icon = ({ name, size = 16, className = "" }) => {
         const ref = useRef(null);
         useEffect(() => {
@@ -205,7 +180,7 @@
             try { 
                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'update', id: item.id, values: newDataArray }) }); 
                setToast("עודכן בהצלחה!"); 
-               setTimeout(() => { onRefresh(); onClose(); }, 1000);
+               setTimeout(() => { onRefresh(); onClose(); }, 1500);
             } catch(e) { setIsSubmitting(false); }
          }
 
@@ -215,16 +190,9 @@
             try {
                await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'addComment', id: item.id, userEmail, text: comment }) });
                setToast("הערה נשלחה!"); 
-               setTimeout(() => { onRefresh(); onClose(); }, 1000);
+               setTimeout(() => { onRefresh(); onClose(); }, 1500);
             } catch(e) { setIsSubmitting(false); }
          }
-
-         const handleKeyPress = (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-               e.preventDefault();
-               handlePostComment();
-            }
-         };
 
          if (mode === 'edit') return <div className="modal-overlay" onClick={onClose}><DynamicForm title="עריכת פרטים" formData={editData} setFormData={setEditData} fullData={fullData} onSubmit={handleUpdate} isSubmitting={isSubmitting} onClose={onClose} submitText="שמור שינויים" /></div>;
 
@@ -263,10 +231,9 @@
                         <div className="flex gap-3 relative">
                            <input 
                               className="solid-input pr-12 h-14" 
-                              placeholder="כתוב הערה (Enter לשליחה)..." 
+                              placeholder="כתוב הערה..." 
                               value={comment} 
                               onChange={e=>setComment(e.target.value)}
-                              onKeyDown={handleKeyPress}
                            />
                            <button onClick={handlePostComment} disabled={isSubmitting} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all w-10 h-10 flex items-center justify-center">
                               {isSubmitting ? <Icon name="Loader2" className="spin" size={18} /> : <Icon name="Send" size={18}/>}
@@ -289,23 +256,38 @@
         const [toastMsg, setToastMsg] = useState(null);
         const [userEmail, setUserEmail] = useState("");
 
-        useEffect(() => { const stored = localStorage.getItem('userEmail'); if (stored) setUserEmail(stored); fetchData(); }, []);
+        useEffect(() => { 
+          const stored = localStorage.getItem('userEmail'); 
+          if (stored) setUserEmail(stored); 
+          fetchData(); 
+        }, []);
         
         const fetchData = async () => { 
           setIsLoading(true); 
           try { 
-            const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(GOOGLE_CSV_URL + `&t=${Date.now()}`)}`); 
-            const text = await resp.text(); 
-            const rows = parseCSV(text); 
-            if (rows.length < 2) { setData([]); return; } 
-            const newData = rows.slice(1).map((row, index) => ({ 
-               id: index, values: row.slice(0, 16), interestedUsers: row[16], comments: row[17]
-            })).filter(i => i.values[1]); 
-            setData(newData); 
-          } catch (err) {} finally { setIsLoading(false); } 
+            const resp = await fetch(APPS_SCRIPT_URL); 
+            const jsonData = await resp.json(); 
+            
+            // המרת ה-JSON שמתקבל מה-doGet למבנה של האתר
+            const headers = ["נושא", "תת נושא", "אחראי", "אימייל אחראי", "תיאור מקור", "שם המקור", "", "", "", "", "אופן העברה", "רגישות נתונים", "תדירות העברה", "סוג המקור", "איכות המקור", "עדכון אחרון", "משתמשים", "הערות"];
+            
+            const formattedData = jsonData.map(item => {
+                const values = headers.map(h => item[h] || "");
+                return {
+                    id: item.id,
+                    values: values.slice(0, 16),
+                    comments: item['הערות'] || "[]"
+                };
+            });
+
+            setData(formattedData); 
+          } catch (err) {
+            console.error("Error fetching data:", err);
+          } finally { 
+            setIsLoading(false); 
+          } 
         };
 
-        // לוגיקה לבדיקת הרשאת הוספה: האם המשתמש הוא מנהל או שהוא מופיע כבר כאחראי על אחד הבלוקים
         const canAddSource = useMemo(() => {
            if (!userEmail) return false;
            if (userEmail === MANAGER_EMAIL) return true;
@@ -316,23 +298,22 @@
         const domains = [...new Set(data.map(i => i.values[0]))].filter(Boolean);
 
         if (!userEmail) return (
-           <div className="min-h-screen flex items-center justify-center p-4">
-              <div className="bg-white p-10 rounded-[32px] shadow-2xl w-full max-w-md text-center border border-slate-100 fade-in">
-                 <div className="bg-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-200"><Icon name="Database" size={40} className="text-white" /></div>
-                 <h1 className="text-3xl font-bold mb-8 text-slate-900">קטלוג מידע וידע</h1>
-                 <form onSubmit={(e) => { e.preventDefault(); const em = e.target.email.value; if(em.includes('@')) { localStorage.setItem('userEmail', em); setUserEmail(em); } }}>
-                    <div className="form-group text-right"><label className="field-label">מייל ארגוני</label><input name="email" type="email" className="solid-input h-14" placeholder="your@email.com" required autoFocus /></div>
-                    <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg text-lg">כניסה למערכת</button>
-                 </form>
-              </div>
-           </div>
+            <div className="min-h-screen flex items-center justify-center p-4">
+               <div className="bg-white p-10 rounded-[32px] shadow-2xl w-full max-w-md text-center border border-slate-100 fade-in">
+                  <div className="bg-indigo-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-200"><Icon name="Database" size={40} className="text-white" /></div>
+                  <h1 className="text-3xl font-bold mb-8 text-slate-900">קטלוג מידע וידע</h1>
+                  <form onSubmit={(e) => { e.preventDefault(); const em = e.target.email.value; if(em.includes('@')) { localStorage.setItem('userEmail', em); setUserEmail(em); } }}>
+                     <div className="form-group text-right"><label className="field-label">מייל ארגוני</label><input name="email" type="email" className="solid-input h-14" placeholder="your@email.com" required autoFocus /></div>
+                     <button className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg text-lg">כניסה למערכת</button>
+                  </form>
+               </div>
+            </div>
         );
 
         return (
           <div className="min-h-screen pb-20 fade-in text-right">
              <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b p-5 flex justify-between items-center shadow-sm">
                 <div className="flex gap-4 items-center">
-                   {/* כפתור הוספה מוצג רק למורשים */}
                    {canAddSource && (
                       <button onClick={() => setShowAddModal(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center gap-2">
                         <Icon name="Plus" size={18}/> הוספת מקור
@@ -366,9 +347,8 @@
                     {filteredData.map((item, idx) => {
                        let count = 0;
                        try { count = item.comments ? JSON.parse(item.comments).length : 0; } catch(e) {}
-                       
                        return (
-                       <div key={idx} onClick={() => setSelectedItem(item)} className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer text-right flex flex-col relative overflow-hidden group">
+                       <div key={idx} onClick={() => setSelectedItem(item)} className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer text-right flex flex-col relative overflow-hidden group fade-in">
                           <div className="h-2 w-full bg-indigo-500 absolute top-0 left-0 group-hover:bg-indigo-600 transition-colors"></div>
                           <span className="text-[11px] font-bold text-indigo-500 uppercase mb-3 tracking-widest">{item.values[0]}</span>
                           <h3 className="text-xl font-bold text-slate-900 leading-snug mb-6 flex-grow">{item.values[1]}</h3>
@@ -395,7 +375,12 @@
                <div className="modal-overlay" onClick={()=>setShowAddModal(false)}>
                   <DynamicForm title="הוספת מקור חדש" formData={Array(16).fill("")} setFormData={(vals) => {
                       const add = async () => {
-                         try { await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'create', values: vals.map((v,i)=>i===15?new Date().toLocaleDateString('he-IL'):(i===3 && !v ? userEmail : v)) }) }); setToastMsg("מקור נתונים נוסף בהצלחה!"); fetchData(); setShowAddModal(false); } catch(e) {}
+                         try { 
+                            await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'create', values: vals.map((v,i)=>i===15?new Date().toLocaleDateString('he-IL'):(i===3 && !v ? userEmail : v)) }) }); 
+                            setToastMsg("מקור נתונים נוסף בהצלחה!"); 
+                            fetchData(); 
+                            setShowAddModal(false); 
+                         } catch(e) { console.error(e); }
                       }; add();
                     }} fullData={data} onSubmit={()=>{}} isSubmitting={false} onClose={()=>setShowAddModal(false)} submitText="שמור למאגר" />
                </div>
@@ -409,4 +394,5 @@
     </script>
   </body>
 </html>
+
 
